@@ -12,7 +12,13 @@ from assayer.domain.evalspec import EvalSpec
 from assayer.domain.grading import Grade
 from assayer.domain.outcome import Outcome
 from assayer.domain.run import RunMeta
-from assayer.ports.store import AttemptRepository, CostLedger, RunRepository, ScoreRepository
+from assayer.ports.store import (
+    AttemptRepository,
+    CostLedger,
+    RunRepository,
+    ScoreRepository,
+    StoredJudgement,
+)
 
 
 class ReadStore(RunRepository, AttemptRepository, ScoreRepository, CostLedger, Protocol):
@@ -58,13 +64,26 @@ async def grading_view(
     return GradingView(version, judge_version, checks, current=True)
 
 
-async def run_analytics(store: ReadStore, meta: RunMeta, grader_version: str) -> RunAnalytics:
+async def run_analytics(
+    store: ReadStore, meta: RunMeta, grader_version: str, *, judge_version: str | None
+) -> RunAnalytics:
+    """Analytics for one grading view. Judge statistics count only ``judge_version``: a run
+    re-judged under a new rubric keeps the old judgements, which must not be mixed in."""
     return analyze(
         await store.list_grades(meta.run_id, grader_version),
         cases=await store.load_cases(meta.run_id),
         ledger=await store.ledger(meta.run_id),
-        judgements=await store.list_judgements(meta.run_id),
+        judgements=await judgements_of(store, meta.run_id, judge_version),
     )
+
+
+async def judgements_of(
+    store: ReadStore, run_id: str, judge_version: str | None
+) -> list[StoredJudgement]:
+    """A run's judgements under one judge version (none when there is no judge)."""
+    if judge_version is None:
+        return []
+    return [j for j in await store.list_judgements(run_id) if j.judge_version == judge_version]
 
 
 async def failures(

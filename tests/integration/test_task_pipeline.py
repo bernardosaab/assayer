@@ -61,7 +61,9 @@ async def test_full_run_grades_every_case_as_scripted(store: SqliteStore) -> Non
     assert len(judgements[by_case["amara-okafor"]].dropped) == 1  # fabricated quote dropped
     assert judgements[by_case["carlos-ruiz"]].verdict_final == "fail"
 
-    analytics = await run_analytics(store, result.meta, version)
+    analytics = await run_analytics(
+        store, result.meta, version, judge_version=harness.judge_version
+    )
     assert analytics.rates.pass_rate == pytest.approx(4 / 6)
     assert analytics.total_cost > Money.zero()
     assert analytics.cost_per_success == Money(analytics.total_cost.micros // 4)
@@ -144,7 +146,12 @@ async def test_circuit_breaker_stops_a_dead_endpoint(store: SqliteStore) -> None
     assert "circuit breaker" in result.execution.halted_reason
     # Refused connections were never billed: every reservation was released.
     assert await store.committed("r1") == Money.zero()
-    analytics = await run_analytics(store, result.meta, grader_version(spec, harness.judge_version))
+    analytics = await run_analytics(
+        store,
+        result.meta,
+        grader_version(spec, harness.judge_version),
+        judge_version=harness.judge_version,
+    )
     assert analytics.rates.graded == 0  # harness errors never count toward the rate
     assert analytics.rates.harness_errors == 3
 
@@ -169,7 +176,12 @@ async def test_repeats_give_pass_hat_k(store: SqliteStore) -> None:
     result = await RunEval(store, harness, clock=FixedClock(), vcs=FakeVcs())(
         RunOptions(run_id="r1", repeats=3)
     )
-    analytics = await run_analytics(store, result.meta, grader_version(spec, harness.judge_version))
+    analytics = await run_analytics(
+        store,
+        result.meta,
+        grader_version(spec, harness.judge_version),
+        judge_version=harness.judge_version,
+    )
     assert analytics.rates.graded == 9
     assert analytics.pass_hat_k == pytest.approx(2 / 3)  # data-analyst always hits the trap
     assert analytics.pass_at_k == pytest.approx(2 / 3)

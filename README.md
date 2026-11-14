@@ -209,13 +209,13 @@ sequenceDiagram
   participant P as Provider
   SUT->>M: complete(request)
   M->>M: worst case = prompt bytes × in-price + max_tokens × out-price
-  M->>L: BEGIN IMMEDIATE; committed + worst ≤ budget? INSERT reserved
+  M->>L: BEGIN IMMEDIATE, check committed + worst ≤ budget, INSERT reserved
   alt over budget
     L-->>M: BudgetExceeded (no request is sent)
   else reserved
     M->>P: request
     P-->>M: response + usage
-    M->>L: settle(actual)   (never sent → release; maybe billed → keep worst case)
+    M->>L: settle(actual), never sent → release, maybe billed → keep worst case
   end
 ```
 

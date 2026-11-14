@@ -29,6 +29,7 @@ from assayer.application.queries import (
     failures,
     grading_mismatch_note,
     grading_view,
+    judgements_of,
     run_analytics,
 )
 from assayer.application.replay import ReplayRun
@@ -204,7 +205,9 @@ def run(
         pass_rate = None
         if result.scoring is not None:
             version = grader_version(c.harness.spec, c.harness.judge_version)
-            analytics = await run_analytics(c.store, result.meta, version)
+            analytics = await run_analytics(
+                c.store, result.meta, version, judge_version=c.harness.judge_version
+            )
             render.render_analytics(result.meta, analytics)
             pass_rate = analytics.rates.pass_rate
         render.console.print(f"\nrun id: [bold]{rid}[/]")
@@ -243,7 +246,10 @@ def score(
             f"{report.judgements_reused} reused; grades: {report.grades}"
         )
         version = grader_version(c.harness.spec, c.harness.judge_version)
-        render.render_analytics(meta, await run_analytics(c.store, meta, version))
+        analytics = await run_analytics(
+            c.store, meta, version, judge_version=c.harness.judge_version
+        )
+        render.render_analytics(meta, analytics)
 
     async def resolve() -> str:
         if eval_ref:
@@ -270,8 +276,11 @@ def summary(
 
     async def go(c: Container) -> None:
         meta = await _meta(c, run_id)
-        version = await _grader_version(c, meta, eval_ref)
-        render.render_analytics(meta, await run_analytics(c.store, meta, version))
+        view = await _view(c, meta, eval_ref, with_checks=False)
+        analytics = await run_analytics(
+            c.store, meta, view.grader_version, judge_version=view.judge_version
+        )
+        render.render_analytics(meta, analytics)
 
     _run(lambda: _with_container(_settings(), go))
 
@@ -458,7 +467,10 @@ def replay(
         for note in s.notes:
             render.console.print(f"[yellow]note:[/] {note}")
         version = grader_version(c.harness.spec, c.harness.judge_version)
-        render.render_analytics(result.meta, await run_analytics(c.store, result.meta, version))
+        analytics = await run_analytics(
+            c.store, result.meta, version, judge_version=c.harness.judge_version
+        )
+        render.render_analytics(result.meta, analytics)
 
     ref = eval_ref or _run(lambda: _with_container(settings, lambda c: _eval_name(c, run_id)))
     _run(lambda: _with_container(settings, go, eval_ref=ref, profile_name=profile))
@@ -490,7 +502,9 @@ def calibrate_sample(
         attempts = {a.attempt_id: a for a in await c.store.list_attempts(run_id)}
         spec = load_eval(eval_ref or meta.eval_name)
         items = []
-        for j in stratified_sample(await c.store.list_judgements(run_id), n, seed=seed):
+        version = (await _view(c, meta, eval_ref, with_checks=False)).judge_version
+        sampled = stratified_sample(await judgements_of(c.store, run_id, version), n, seed=seed)
+        for j in sampled:
             attempt = attempts[j.attempt_id]
             case = cases[attempt.case_id]
             assert attempt.output is not None
@@ -522,15 +536,21 @@ def calibrate_import(
 
 
 @calibrate_app.command("stats")
-def calibrate_stats(run_id: Annotated[str, typer.Argument(metavar="RUN")]) -> None:
+def calibrate_stats(
+    run_id: Annotated[str, typer.Argument(metavar="RUN")],
+    eval_ref: Annotated[str | None, typer.Option("--eval")] = None,
+) -> None:
     """Judge vs people: agreement, kappa, TPR/TNR, and the bias-corrected pass rate."""
 
     async def go(c: Container) -> None:
         meta = await _meta(c, run_id)
-        if meta.judge_version is None:
+        # One judge version throughout: the labels, the verdicts they are compared with, and the
+        # observed pass rate all refer to the same judge.
+        version = (await _view(c, meta, eval_ref, with_checks=False)).judge_version
+        if version is None:
             raise AssayerError(f"run {run_id!r} has no judge")
-        judgements = await c.store.list_judgements(run_id)
-        labels = await c.store.list_calibration(JUDGE_ID, meta.judge_version)
+        judgements = await judgements_of(c.store, run_id, version)
+        labels = await c.store.list_calibration(JUDGE_ID, version)
         stats = judge_vs_human(judgements, labels)
         finished = [j for j in judgements if j.verdict.verdict_final is not None]
         observed = (

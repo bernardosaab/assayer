@@ -68,6 +68,13 @@ def validate_eval(spec: EvalSpec) -> ValidationReport:
     return ValidationReport(eval_name=spec.name, cases=len(spec.cases), issues=issues)
 
 
+def _build_all(check: object) -> None:
+    """Composite checks build their children lazily; force that now, recursively, so a typo in
+    a nested check fails validation instead of every attempt at scoring time."""
+    for child in getattr(check, "children", None) or ():
+        _build_all(child)
+
+
 def _case_issues(spec: EvalSpec, case: TaskFixture | ConversationFixture) -> list[Issue]:
     where = f"case {case.id}"
     issues: list[Issue] = []
@@ -83,9 +90,17 @@ def _case_issues(spec: EvalSpec, case: TaskFixture | ConversationFixture) -> lis
         )
     for check_spec in spec.checks_for(case):
         try:
-            build_check(check_spec)
+            _build_all(build_check(check_spec))
         except ConfigError as exc:
             issues.append(Issue(severity="error", where=where, message=str(exc)))
+        except Exception as exc:  # a factory rejecting its args (TypeError, ValidationError...)
+            issues.append(
+                Issue(
+                    severity="error",
+                    where=where,
+                    message=f"check {check_spec.check_id!r}: {type(exc).__name__}: {exc}",
+                )
+            )
     ids = [c.id for c in spec.criteria_for(case)]
     if len(ids) != len(set(ids)):
         issues.append(Issue(severity="error", where=where, message=f"duplicate criteria: {ids}"))

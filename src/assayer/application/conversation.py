@@ -53,20 +53,27 @@ async def run_conversation(
         step = await agent.respond(history, environment, agent_llm, turn=turn)
         history.extend(step.messages)
         events.extend(step.tool_events)
-        for tool_event in step.tool_events:
-            call = tool_event.call
-            emit(
-                TurnEvent(
-                    fixture.id,
-                    turn,
-                    "tool",
-                    f"{call.name}({json.dumps(call.arguments, default=str)})",
-                    error=tool_event.error,
+        # Every message of the turn, in order (interim text, tool calls, final reply), so the
+        # live trace shows the same sequence as the report's timeline.
+        pending_events = list(step.tool_events)
+        for message in step.messages:
+            if message.role != "assistant":
+                continue
+            for call in message.tool_calls:
+                tool_event = next((e for e in pending_events if e.call == call), None)
+                if tool_event is not None:
+                    pending_events.remove(tool_event)
+                emit(
+                    TurnEvent(
+                        fixture.id,
+                        turn,
+                        "tool",
+                        f"{call.name}({json.dumps(call.arguments, default=str)})",
+                        error=tool_event.error if tool_event else "not executed",
+                    )
                 )
-            )
-        reply = next((m.content for m in reversed(step.messages) if m.role == "assistant"), None)
-        if reply:
-            emit(TurnEvent(fixture.id, turn, "agent", reply))
+            if message.content:
+                emit(TurnEvent(fixture.id, turn, "agent", message.content))
         if step.error is not None:
             termination, agent_error = TerminationReason.AGENT_TOOL_LOOP, step.error
             break

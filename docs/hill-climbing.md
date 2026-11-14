@@ -99,6 +99,7 @@ is a `no_fabrication` finding that looks like another judge false positive; that
 |---|---|---|---|
 | v1 | baseline | 0/8 | 2 wrong-year dates, 4 permission errors (guessed employee ids), 2 duplicate requests after "fingers crossed" |
 | v2 | environment `briefing()` gives identity and today's date; `submit_pto_request` made idempotent | 0/7 (+1 judge harness error) | 0, 0 and 0 |
+| v3 | the same agent re-run on v0.2.1 (stricter environment after the code reviews) | 0/8 | unchanged: the remaining failures are model capability |
 
 The end-to-end rate did not move, and the diff says so. The tool-level errors it targeted went to zero.
 The remaining failures are the 3B agent acting before confirming and repeating calls, and a 3B

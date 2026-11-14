@@ -78,5 +78,7 @@ class ReplayRun:
         scoring = await ScoreRun(
             self._store, harness, judge_cache_only=not rejudge, observer=self._observer
         )(target_run_id)
-        await self._store.set_run_status(target_run_id, RunStatus.COMPLETE)
+        # A replay whose judging stopped (budget) is not final, just like a halted run.
+        status = RunStatus.HALTED if scoring.halted_reason else RunStatus.COMPLETE
+        await self._store.set_run_status(target_run_id, status)
         return ReplayResult(meta=meta, copied=copied, scoring=scoring)
