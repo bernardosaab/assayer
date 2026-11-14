@@ -44,7 +44,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: uv sync --locked
       - run: uv run pytest --cov --cov-report=term --cov-report=xml --cov-fail-under=90
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.13'
         with:
           name: coverage
@@ -79,7 +79,7 @@ jobs:
         if: always()
         run: |
           for r in ci-resume ci-posting ci-hr; do uv run assayer report "$r" || true; done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: eval-reports
