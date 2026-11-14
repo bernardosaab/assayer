@@ -36,13 +36,13 @@ from assayer.domain.errors import BudgetExceeded, ConfigError, ErrorKind, Harnes
 from assayer.domain.fixtures import ConversationFixture, TaskFixture
 from assayer.domain.messages import Purpose
 from assayer.domain.outputs import TaskOutput, Transcript
-from assayer.ports.store import AttemptRepository, RunRepository
+from assayer.ports.store import AttemptRepository, CostLedger, RunRepository
 from assayer.ports.sut import ChatModel
 
 log = logging.getLogger(__name__)
 
 
-class _AttemptsAndRuns(AttemptRepository, RunRepository, Protocol):
+class _AttemptsAndRuns(AttemptRepository, RunRepository, CostLedger, Protocol):
     pass
 
 
@@ -108,9 +108,11 @@ class Executor:
                     ),
                 )
                 if isinstance(outcome, BudgetExceeded):
-                    report.halted_reason = f"budget exhausted ({outcome})"
+                    if report.halted_reason is None:
+                        report.halted_reason = f"budget exhausted ({outcome})"
                     halt.set()
                 if released:
+                    report.released += 1
                     return  # handed back untouched: it will run on resume, it did not "execute"
                 report.executed += 1
                 if outcome is None:
@@ -137,11 +139,6 @@ class Executor:
         if report.halted_reason:
             safe_notify(self._observer, Halted(report.halted_reason))
 
-        if report.halted_reason and "budget" in report.halted_reason:
-            # Attempts released after the budget halt are counted for the summary.
-            report.released = sum(
-                a.status is AttemptStatus.PENDING for a in await self._store.list_attempts(run_id)
-            )
         return report
 
     async def _attempt(
@@ -166,8 +163,9 @@ class Executor:
         try:
             output = await self._run_sut(case, agent_llm, sim_llm)
         except BudgetExceeded as exc:
-            spent_calls = agent_llm.calls_made + (sim_llm.calls_made if sim_llm else 0)
-            if spent_calls == 0:
+            # "Untouched" means nothing was charged, the same rule crash recovery uses. Counting
+            # successful calls is not enough: a timed-out call may have been billed.
+            if not await self._charged(attempt):
                 await self._store.release_attempt(attempt.attempt_id)
                 return exc, True
             await self._store.fail_attempt(attempt.attempt_id, exc.kind, str(exc))
@@ -182,6 +180,15 @@ class Executor:
             return error, False
         await self._store.finish_attempt(attempt.attempt_id, output.model_dump(mode="json"))
         return None, False
+
+    async def _charged(self, attempt: Attempt) -> bool:
+        for entry in await self._store.ledger(attempt.run_id):
+            if entry.attempt_id != attempt.attempt_id or entry.status == "released":
+                continue
+            cost = entry.actual_micros if entry.status == "settled" else entry.reserved_micros
+            if cost:
+                return True
+        return False
 
     async def _run_sut(
         self,

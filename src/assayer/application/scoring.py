@@ -30,12 +30,13 @@ from assayer.application.registry import build_check
 from assayer.domain.attempt import Attempt, AttemptStatus
 from assayer.domain.base import content_hash
 from assayer.domain.checks import CheckResult
-from assayer.domain.errors import BudgetExceeded, HarnessError
+from assayer.domain.errors import BudgetExceeded, ErrorKind, HarnessError
 from assayer.domain.evalspec import EvalSpec
 from assayer.domain.fixtures import ConversationFixture, TaskFixture
 from assayer.domain.grading import GRADER_VERSION, Grade, grade
 from assayer.domain.judging import judge_error
 from assayer.domain.messages import CallContext, Purpose
+from assayer.domain.outcome import Outcome
 from assayer.domain.outputs import TaskOutput, Transcript, parse_output
 from assayer.ports.grading import Check
 from assayer.ports.store import AttemptRepository, RunRepository, ScoreRepository, StoredJudgement
@@ -104,10 +105,12 @@ class ScoreRun:
         self._store = store
         self._harness = harness
         self._cache_only = judge_cache_only
+        self._judge_expected = False
         self._observer: RunObserver = observer or NullObserver()
 
     async def __call__(self, run_id: str, *, judge: bool = True) -> ScoreReport:
         spec = self._harness.spec
+        self._judge_expected = judge and self._harness.judge is not None
         cases = {c.id: c for c in await self._store.load_cases(run_id)}
         attempts = await self._store.list_attempts(run_id)
         report = ScoreReport()
@@ -123,7 +126,7 @@ class ScoreRun:
         if report.judgements_skipped:
             report.notes.append(
                 f"{report.judgements_skipped} judgement(s) not in cache were skipped; "
-                "grades for those attempts ignore the judge (use --rejudge to call it)"
+                "those attempts are harness errors (not measured) until judged: use --rejudge"
             )
         version = grader_version(spec, self._harness.judge_version)
         for attempt in attempts:
@@ -216,6 +219,9 @@ class ScoreRun:
                     return
                 except HarnessError as exc:
                     verdict = judge_error(exc.kind, str(exc))
+                except Exception as exc:  # a judge bug must not abort scoring of the whole run
+                    log.exception("judge crashed on attempt %s", attempt.attempt_id)
+                    verdict = judge_error(ErrorKind.INTERNAL, f"{type(exc).__name__}: {exc}")
                 report.judgements_computed += 1
             if verdict.verdict_final is None:
                 report.judge_errors += 1
@@ -257,6 +263,14 @@ class ScoreRun:
         if version is not None and self._harness.spec.criteria_for(case):
             stored = await self._store.get_judgement(attempt.attempt_id, JUDGE_ID, version)
             judgement = stored.verdict if stored else None
+            if judgement is None and self._judge_expected:
+                # The judge should have run but did not (budget stop, or not cached in a
+                # replay). Grading on checks alone would overstate the pass rate, so the attempt
+                # is "not measured": excluded from rates until `score` or `--rejudge` fills it.
+                return Grade(
+                    outcome=Outcome.HARNESS_ERROR,
+                    reasons=["judge: not run (budget or not cached); re-score to complete"],
+                )
         return grade(
             attempt_status=attempt.status,
             agent_error=output.agent_error,

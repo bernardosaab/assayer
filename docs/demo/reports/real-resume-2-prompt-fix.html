@@ -169,7 +169,7 @@
 <pre>The current role is described as &#39;Platform Engineer&#39; at &#39;Contoso Cloud&#39; without an end date, which matches the source document. However, the years of experience are calculated incorrectly, as the current year is 2023, not 2026. The skills listed are accurate and supported by the source document.</pre>    <p><span class="ok">✓ verified</span>       <code>current_role</code>: “Experience
 Platform Engineer - Contoso Cloud (2019 - Present)”<span class="muted">, The current role is correctly described as &#39;Platform Engineer&#39; at &#39;Contoso Cloud&#39; without an end date.</span></p>
     <p><span class="bad">✗ dropped (quote not in evidence)</span>       <code>no_fabrication</code>: “years_experience: 2026”<span class="muted">, The years of experience are incorrectly stated as 2026, which is not supported by the source document. The correct years of experience should be calculated from the start date to the current year, which is 2023.</span></p>
-<pre>{
+    <p class="muted">Model output</p><pre>{
   &#34;name&#34;: &#34;AMARA OKAFOR&#34;,
   &#34;current_title&#34;: &#34;Platform Engineer&#34;,
   &#34;current_employer&#34;: &#34;Contoso Cloud&#34;,
@@ -182,7 +182,8 @@ Platform Engineer - Contoso Cloud (2019 - Present)”<span class="muted">, The c
     &#34;Prometheus&#34;,
     &#34;Grafana&#34;
   ]
-}</pre>  </div>
+}</pre>
+<p class="muted">Graded as (parsed, with fields derived in code)</p><pre>{&#34;current_employer&#34;: &#34;Contoso Cloud&#34;, &#34;current_title&#34;: &#34;Platform Engineer&#34;, &#34;name&#34;: &#34;AMARA OKAFOR&#34;, &#34;skills&#34;: [&#34;Terraform&#34;, &#34;Go&#34;, &#34;AWS&#34;, &#34;Kubernetes&#34;, &#34;Prometheus&#34;, &#34;Grafana&#34;], &#34;years_experience&#34;: 2026}</pre>  </div>
 </details>
 <details class="attempt" open>
   <summary>
@@ -210,7 +211,7 @@ Platform Engineer - Contoso Cloud (2019 - Present)”<span class="muted">, The c
     <p><strong>Judge</strong> <span class="muted">(raw verdict fail, final fail, 0 re-asks)</span></p>
 <pre>Let&#39;s evaluate the criteria step by step. First, we need to check if the current role is correctly described. The extracted output states that Carlos Ruiz is a Data Analyst at Brightwave Analytics, which is currently his role. However, the years of experience are calculated as 2026, which is incorrect. The current role is correctly described, but the years of experience are not supported by the source document.</pre>    <p><span class="ok">✓ verified</span>       <code>current_role</code>: “Brightwave Analytics, Data Analyst (2024 - Present)”<span class="muted">, The current role is correctly described as a Data Analyst at Brightwave Analytics, which is the role without an end date.</span></p>
     <p><span class="bad">✗ dropped (quote not in evidence)</span>       <code>no_fabrication</code>: “years_experience: 2026”<span class="muted">, The years of experience are calculated as 2026, which is not supported by the source document. The source document does not provide a specific number of years of experience, only the current role and the fact that it is ongoing.</span></p>
-<pre>{
+    <p class="muted">Model output</p><pre>{
   &#34;name&#34;: &#34;Carlos Ruiz&#34;,
   &#34;current_title&#34;: &#34;Data Analyst&#34;,
   &#34;current_employer&#34;: &#34;Brightwave Analytics&#34;,
@@ -221,7 +222,8 @@ Platform Engineer - Contoso Cloud (2019 - Present)”<span class="muted">, The c
     &#34;Python&#34;,
     &#34;Excel&#34;
   ]
-}</pre>  </div>
+}</pre>
+<p class="muted">Graded as (parsed, with fields derived in code)</p><pre>{&#34;current_employer&#34;: &#34;Brightwave Analytics&#34;, &#34;current_title&#34;: &#34;Data Analyst&#34;, &#34;name&#34;: &#34;Carlos Ruiz&#34;, &#34;skills&#34;: [&#34;SQL&#34;, &#34;Looker&#34;, &#34;Python&#34;, &#34;Excel&#34;], &#34;years_experience&#34;: 2026}</pre>  </div>
 </details>
 <details class="attempt" open>
   <summary>
@@ -248,7 +250,7 @@ Platform Engineer - Contoso Cloud (2019 - Present)”<span class="muted">, The c
     </table>
     <p><strong>Judge</strong> <span class="muted">(raw verdict fail, final pass, 0 re-asks)</span></p>
 <pre>The extracted output claims that Jane Doe has 2026 years of experience, which is highly improbable and unsupported by the source document. The source document only lists her current role and a previous role, but does not provide any information about the duration of her career or the exact years of experience. Additionally, the skills listed in the extracted output are consistent with the source document.</pre>    <p><span class="bad">✗ dropped (quote not in evidence)</span>       <code>no_fabrication</code>: “years_experience: 2026”<span class="muted">, The claim of 2026 years of experience is fabricated and not supported by the source document.</span></p>
-<pre>{
+    <p class="muted">Model output</p><pre>{
   &#34;name&#34;: &#34;JANE DOE&#34;,
   &#34;current_title&#34;: &#34;Senior Software Engineer&#34;,
   &#34;current_employer&#34;: &#34;Acme Corp&#34;,
@@ -259,7 +261,8 @@ Platform Engineer - Contoso Cloud (2019 - Present)”<span class="muted">, The c
     &#34;Kafka&#34;,
     &#34;Kubernetes&#34;
   ]
-}</pre>  </div>
+}</pre>
+<p class="muted">Graded as (parsed, with fields derived in code)</p><pre>{&#34;current_employer&#34;: &#34;Acme Corp&#34;, &#34;current_title&#34;: &#34;Senior Software Engineer&#34;, &#34;name&#34;: &#34;JANE DOE&#34;, &#34;skills&#34;: [&#34;Python&#34;, &#34;PostgreSQL&#34;, &#34;Kafka&#34;, &#34;Kubernetes&#34;], &#34;years_experience&#34;: 2026}</pre>  </div>
 </details>
 <details class="attempt">
   <summary>
@@ -287,7 +290,7 @@ Platform Engineer - Contoso Cloud (2019 - Present)”<span class="muted">, The c
     <p><strong>Judge</strong> <span class="muted">(raw verdict fail, final fail, 0 re-asks)</span></p>
 <pre>The extracted output states that Mei Chen&#39;s current title is &#39;Machine Learning Engineer&#39; and her current employer is &#39;Northwind Health&#39;. However, the work history shows that her current role started in 2021 and is still ongoing. The years_experience field is incorrectly calculated as 2026, which is not a realistic value. The skills are correctly extracted from the source document.</pre>    <p><span class="ok">✓ verified</span>       <code>current_role</code>: “Machine Learning Engineer @ Northwind Health (2021-Present)”<span class="muted">, The current role is incorrectly described as having an end date of &#39;Present&#39;, which implies it is ongoing. The correct description should not include an end date.</span></p>
     <p><span class="bad">✗ dropped (quote not in evidence)</span>       <code>no_fabrication</code>: “years_experience: 2026”<span class="muted">, The years_experience field is incorrectly calculated as 2026, which is not a realistic value based on the information provided. The correct years of experience should be calculated from the start date of the current role.</span></p>
-<pre>{
+    <p class="muted">Model output</p><pre>{
   &#34;name&#34;: &#34;Mei Chen&#34;,
   &#34;current_title&#34;: &#34;Machine Learning Engineer&#34;,
   &#34;current_employer&#34;: &#34;Northwind Health&#34;,
@@ -299,7 +302,8 @@ Platform Engineer - Contoso Cloud (2019 - Present)”<span class="muted">, The c
     &#34;Airflow&#34;,
     &#34;GCP&#34;
   ]
-}</pre>  </div>
+}</pre>
+<p class="muted">Graded as (parsed, with fields derived in code)</p><pre>{&#34;current_employer&#34;: &#34;Northwind Health&#34;, &#34;current_title&#34;: &#34;Machine Learning Engineer&#34;, &#34;name&#34;: &#34;Mei Chen&#34;, &#34;skills&#34;: [&#34;PyTorch&#34;, &#34;Python&#34;, &#34;MLflow&#34;, &#34;Airflow&#34;, &#34;GCP&#34;], &#34;years_experience&#34;: 2026}</pre>  </div>
 </details>
 <details class="attempt">
   <summary>
@@ -326,7 +330,7 @@ Platform Engineer - Contoso Cloud (2019 - Present)”<span class="muted">, The c
     </table>
     <p><strong>Judge</strong> <span class="muted">(raw verdict fail, final pass, 0 re-asks)</span></p>
 <pre>Let&#39;s evaluate the criteria one by one. For the &#39;no_fabrication&#39; criterion, the years_experience value of 2026 is not supported by the source document. The &#39;current_title&#39; and &#39;current_employer&#39; are correctly described as the person&#39;s current role. For the &#39;current_role&#39; criterion, the current_title and current_employer are correctly described as the person&#39;s current role.</pre>    <p><span class="bad">✗ dropped (quote not in evidence)</span>       <code>no_fabrication</code>: “years_experience: 2026”<span class="muted">, The years_experience value of 2026 is not supported by the source document, which only mentions the current role without an end date.</span></p>
-<pre>{
+    <p class="muted">Model output</p><pre>{
   &#34;name&#34;: &#34;Priya Sharma&#34;,
   &#34;current_title&#34;: &#34;Engineering Manager&#34;,
   &#34;current_employer&#34;: &#34;Umbrella Retail&#34;,
@@ -337,7 +341,8 @@ Platform Engineer - Contoso Cloud (2019 - Present)”<span class="muted">, The c
     &#34;Node.js&#34;,
     &#34;AWS&#34;
   ]
-}</pre>  </div>
+}</pre>
+<p class="muted">Graded as (parsed, with fields derived in code)</p><pre>{&#34;current_employer&#34;: &#34;Umbrella Retail&#34;, &#34;current_title&#34;: &#34;Engineering Manager&#34;, &#34;name&#34;: &#34;Priya Sharma&#34;, &#34;skills&#34;: [&#34;TypeScript&#34;, &#34;React&#34;, &#34;Node.js&#34;, &#34;AWS&#34;], &#34;years_experience&#34;: 2026}</pre>  </div>
 </details>
 <details class="attempt">
   <summary>
@@ -365,7 +370,7 @@ Platform Engineer - Contoso Cloud (2019 - Present)”<span class="muted">, The c
     <p><strong>Judge</strong> <span class="muted">(raw verdict fail, final pass, 0 re-asks)</span></p>
 <pre>Let&#39;s evaluate the criteria one by one. For the &#39;no_fabrication&#39; criterion, we need to ensure that all values in the extracted output are supported by the source document. For the &#39;current_role&#39; criterion, we need to confirm that the current title and employer are for the person&#39;s current role, not a previous one.</pre>    <p><span class="bad">✗ dropped (quote not in evidence)</span>       <code>no_fabrication</code>: “years_experience: 2026”<span class="muted">, The years_experience value of 2026 is not supported by the source document, which only provides the current role and a start year of 2018.</span></p>
     <p><span class="bad">✗ dropped (quote not in evidence)</span>       <code>current_role</code>: “current_title: &#39;Staff Engineer (Software)&#39;, current_employer: &#39;Wayne Enterprises&#39;”<span class="muted">, The current role is described as &#39;Staff Engineer (Software)&#39; at &#39;Wayne Enterprises&#39;, but the source document also mentions a previous role at &#39;Stark Industries&#39; from 2012 to 2018, indicating that the current role is not the only one held by the individual.</span></p>
-<pre>{
+    <p class="muted">Model output</p><pre>{
   &#34;name&#34;: &#34;Tomasz Nowak&#34;,
   &#34;current_title&#34;: &#34;Staff Engineer (Software)&#34;,
   &#34;current_employer&#34;: &#34;Wayne Enterprises&#34;,
@@ -376,9 +381,10 @@ Platform Engineer - Contoso Cloud (2019 - Present)”<span class="muted">, The c
     &#34;gRPC&#34;,
     &#34;Spanner&#34;
   ]
-}</pre>  </div>
+}</pre>
+<p class="muted">Graded as (parsed, with fields derived in code)</p><pre>{&#34;current_employer&#34;: &#34;Wayne Enterprises&#34;, &#34;current_title&#34;: &#34;Staff Engineer (Software)&#34;, &#34;name&#34;: &#34;Tomasz Nowak&#34;, &#34;skills&#34;: [&#34;Java&#34;, &#34;Kotlin&#34;, &#34;gRPC&#34;, &#34;Spanner&#34;], &#34;years_experience&#34;: 2026}</pre>  </div>
 </details>
-<footer>Generated by assayer 0.1.0.dev0. Harness errors are excluded from every rate. Intervals are 95% Wilson.</footer>
+<footer>Generated by assayer 0.2.1. Harness errors are excluded from every rate. Intervals are 95% Wilson.</footer>
 </main>
 </body>
 </html>

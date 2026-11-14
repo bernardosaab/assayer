@@ -168,7 +168,7 @@
           <td class="muted"></td></tr>
     </table>
     <p><strong>Judge</strong> <span class="muted">(raw verdict pass, final pass, 0 re-asks)</span></p>
-<pre>The current role is described as &#39;Platform Engineer&#39; at &#39;Contoso Cloud&#39; with no end date, which matches the SOURCE DOCUMENT. However, the years of experience are calculated based on the current role&#39;s start date (2019) and the current year, which is not provided in the evidence. The skills listed are accurate and directly quoted from the SOURCE DOCUMENT.</pre><pre>{
+<pre>The current role is described as &#39;Platform Engineer&#39; at &#39;Contoso Cloud&#39; with no end date, which matches the SOURCE DOCUMENT. However, the years of experience are calculated based on the current role&#39;s start date (2019) and the current year, which is not provided in the evidence. The skills listed are accurate and directly quoted from the SOURCE DOCUMENT.</pre>    <p class="muted">Model output</p><pre>{
   &#34;name&#34;: &#34;AMARA OKAFOR&#34;,
   &#34;current_title&#34;: &#34;Platform Engineer&#34;,
   &#34;current_employer&#34;: &#34;Contoso Cloud&#34;,
@@ -181,7 +181,8 @@
     &#34;Prometheus&#34;,
     &#34;Grafana&#34;
   ]
-}</pre>  </div>
+}</pre>
+<p class="muted">Graded as (parsed, with fields derived in code)</p><pre>{&#34;current_employer&#34;: &#34;Contoso Cloud&#34;, &#34;current_title&#34;: &#34;Platform Engineer&#34;, &#34;name&#34;: &#34;AMARA OKAFOR&#34;, &#34;skills&#34;: [&#34;Terraform&#34;, &#34;Go&#34;, &#34;AWS&#34;, &#34;Kubernetes&#34;, &#34;Prometheus&#34;, &#34;Grafana&#34;], &#34;years_experience&#34;: 7}</pre>  </div>
 </details>
 <details class="attempt" open>
   <summary>
@@ -207,13 +208,14 @@
           <td class="muted"></td></tr>
     </table>
     <p><strong>Judge</strong> <span class="muted">(raw verdict pass, final pass, 0 re-asks)</span></p>
-<pre>Let&#39;s evaluate the criteria one by one. For the &#39;current_title&#39; and &#39;current_employer&#39;, the extracted output states that Carlos Ruiz is a &#39;Data Analyst&#39; at &#39;Brightwave Analytics&#39;. However, the source document indicates that his current role is &#39;Data Analyst&#39; at &#39;Brightwave Analytics&#39; (2024 - Present), which is consistent. There is no evidence of fabrication in the skills section, as the skills listed match those in the source document.</pre><pre>{
+<pre>Let&#39;s evaluate the criteria one by one. For the &#39;current_title&#39; and &#39;current_employer&#39;, the extracted output states that Carlos Ruiz is a &#39;Data Analyst&#39; at &#39;Brightwave Analytics&#39;. However, the source document indicates that his current role is &#39;Data Analyst&#39; at &#39;Brightwave Analytics&#39; (2024 - Present), which is consistent. There is no evidence of fabrication in the skills section, as the skills listed match those in the source document.</pre>    <p class="muted">Model output</p><pre>{
   &#34;name&#34;: &#34;Carlos Ruiz&#34;,
   &#34;current_title&#34;: &#34;Data Analyst&#34;,
   &#34;current_employer&#34;: &#34;Brightwave Analytics&#34;,
   &#34;years_experience&#34;: 2,
   &#34;skills&#34;: [&#34;SQL&#34;, &#34;Looker&#34;, &#34;Python&#34;, &#34;Excel&#34;]
-}</pre>  </div>
+}</pre>
+<p class="muted">Graded as (parsed, with fields derived in code)</p><pre>{&#34;current_employer&#34;: &#34;Brightwave Analytics&#34;, &#34;current_title&#34;: &#34;Data Analyst&#34;, &#34;name&#34;: &#34;Carlos Ruiz&#34;, &#34;skills&#34;: [&#34;SQL&#34;, &#34;Looker&#34;, &#34;Python&#34;, &#34;Excel&#34;], &#34;years_experience&#34;: 2}</pre>  </div>
 </details>
 <details class="attempt" open>
   <summary>
@@ -240,7 +242,7 @@
     </table>
     <p><strong>Judge</strong> <span class="muted">(raw verdict fail, final fail, 0 re-asks)</span></p>
 <pre>Let&#39;s evaluate the criteria one by one. For the &#39;no_fabrication&#39; criterion, we need to ensure that all the information in the extracted output is supported by the source document. For the &#39;current_role&#39; criterion, we need to confirm that the current role and employer are correctly identified as the one without an end date.</pre>    <p><span class="ok">✓ verified</span>       <code>no_fabrication</code>: “Software Engineer, Initech - 2016 to 2020”<span class="muted">, The source document lists &#39;Software Engineer, Initech - 2016 to 2020&#39; as a previous role, but the extracted output incorrectly states that &#39;Senior Software Engineer, Acme Corp - 2020 to Present&#39; is the current role. This suggests fabrication of the current role.</span></p>
-<pre>{
+    <p class="muted">Model output</p><pre>{
   &#34;name&#34;: &#34;JANE DOE&#34;,
   &#34;current_title&#34;: &#34;Senior Software Engineer&#34;,
   &#34;current_employer&#34;: &#34;Acme Corp&#34;,
@@ -251,7 +253,8 @@
     &#34;Kafka&#34;,
     &#34;Kubernetes&#34;
   ]
-}</pre>  </div>
+}</pre>
+<p class="muted">Graded as (parsed, with fields derived in code)</p><pre>{&#34;current_employer&#34;: &#34;Acme Corp&#34;, &#34;current_title&#34;: &#34;Senior Software Engineer&#34;, &#34;name&#34;: &#34;JANE DOE&#34;, &#34;skills&#34;: [&#34;Python&#34;, &#34;PostgreSQL&#34;, &#34;Kafka&#34;, &#34;Kubernetes&#34;], &#34;years_experience&#34;: 7}</pre>  </div>
 </details>
 <details class="attempt">
   <summary>
@@ -278,7 +281,7 @@
     </table>
     <p><strong>Judge</strong> <span class="muted">(raw verdict fail, final fail, 0 re-asks)</span></p>
 <pre>The current role described in the EXTRACTED OUTPUT is &#39;Machine Learning Engineer @ Northwind Health (2021-Present)&#39;, which is the most recent role. However, the SOURCE DOCUMENT lists &#39;Machine Learning Engineer @ Northwind Health (2021-Present)&#39; as a past role, indicating that Mei Chen no longer holds this position. The current role should be &#39;Research Assistant @ Vector Lab (2018-2021)&#39;, as it is the most recent role in the SOURCE DOCUMENT.</pre>    <p><span class="ok">✓ verified</span>       <code>current_role</code>: “Machine Learning Engineer @ Northwind Health (2021-Present)”<span class="muted">, This role is listed as a past role in the SOURCE DOCUMENT, indicating that Mei Chen no longer holds this position.</span></p>
-<pre>{
+    <p class="muted">Model output</p><pre>{
   &#34;name&#34;: &#34;Mei Chen&#34;,
   &#34;current_title&#34;: &#34;Machine Learning Engineer&#34;,
   &#34;current_employer&#34;: &#34;Northwind Health&#34;,
@@ -290,7 +293,8 @@
     &#34;Airflow&#34;,
     &#34;GCP&#34;
   ]
-}</pre>  </div>
+}</pre>
+<p class="muted">Graded as (parsed, with fields derived in code)</p><pre>{&#34;current_employer&#34;: &#34;Northwind Health&#34;, &#34;current_title&#34;: &#34;Machine Learning Engineer&#34;, &#34;name&#34;: &#34;Mei Chen&#34;, &#34;skills&#34;: [&#34;PyTorch&#34;, &#34;Python&#34;, &#34;MLflow&#34;, &#34;Airflow&#34;, &#34;GCP&#34;], &#34;years_experience&#34;: 5}</pre>  </div>
 </details>
 <details class="attempt">
   <summary>
@@ -317,13 +321,14 @@
     </table>
     <p><strong>Judge</strong> <span class="muted">(raw verdict fail, final fail, 0 re-asks)</span></p>
 <pre>The current role should be the one without an end date, which is &#39;Engineering Manager&#39; at &#39;Umbrella Retail&#39;. The previous role &#39;Tech Lead&#39; has an end date, so it should not be described as the current role.</pre>    <p><span class="ok">✓ verified</span>       <code>current_role</code>: “Engineering Manager, Umbrella Retail (2022 - Present)”<span class="muted">, The current role should be the one without an end date, but &#39;Tech Lead&#39; has an end date and is incorrectly listed as the current role.</span></p>
-<pre>{
+    <p class="muted">Model output</p><pre>{
   &#34;name&#34;: &#34;Priya Sharma&#34;,
   &#34;current_title&#34;: &#34;Engineering Manager&#34;,
   &#34;current_employer&#34;: &#34;Umbrella Retail&#34;,
   &#34;years_experience&#34;: 4,
   &#34;skills&#34;: [&#34;TypeScript&#34;, &#34;React&#34;, &#34;Node.js&#34;, &#34;AWS&#34;]
-}</pre>  </div>
+}</pre>
+<p class="muted">Graded as (parsed, with fields derived in code)</p><pre>{&#34;current_employer&#34;: &#34;Umbrella Retail&#34;, &#34;current_title&#34;: &#34;Engineering Manager&#34;, &#34;name&#34;: &#34;Priya Sharma&#34;, &#34;skills&#34;: [&#34;TypeScript&#34;, &#34;React&#34;, &#34;Node.js&#34;, &#34;AWS&#34;], &#34;years_experience&#34;: 4}</pre>  </div>
 </details>
 <details class="attempt">
   <summary>
@@ -349,7 +354,7 @@
           <td class="muted"></td></tr>
     </table>
     <p><strong>Judge</strong> <span class="muted">(raw verdict pass, final pass, 0 re-asks)</span></p>
-<pre>The current role described in the EXTRACTED OUTPUT is &#39;Staff Engineer (Software)&#39; at &#39;Wayne Enterprises&#39;, which is the most recent role without an end date. The role and employer are correctly identified based on the SOURCE DOCUMENT.</pre><pre>{
+<pre>The current role described in the EXTRACTED OUTPUT is &#39;Staff Engineer (Software)&#39; at &#39;Wayne Enterprises&#39;, which is the most recent role without an end date. The role and employer are correctly identified based on the SOURCE DOCUMENT.</pre>    <p class="muted">Model output</p><pre>{
   &#34;name&#34;: &#34;Tomasz Nowak&#34;,
   &#34;current_title&#34;: &#34;Staff Engineer (Software)&#34;,
   &#34;current_employer&#34;: &#34;Wayne Enterprises&#34;,
@@ -360,9 +365,10 @@
     &#34;gRPC&#34;,
     &#34;Spanner&#34;
   ]
-}</pre>  </div>
+}</pre>
+<p class="muted">Graded as (parsed, with fields derived in code)</p><pre>{&#34;current_employer&#34;: &#34;Wayne Enterprises&#34;, &#34;current_title&#34;: &#34;Staff Engineer (Software)&#34;, &#34;name&#34;: &#34;Tomasz Nowak&#34;, &#34;skills&#34;: [&#34;Java&#34;, &#34;Kotlin&#34;, &#34;gRPC&#34;, &#34;Spanner&#34;], &#34;years_experience&#34;: 8}</pre>  </div>
 </details>
-<footer>Generated by assayer 0.1.0.dev0. Harness errors are excluded from every rate. Intervals are 95% Wilson.</footer>
+<footer>Generated by assayer 0.2.1. Harness errors are excluded from every rate. Intervals are 95% Wilson.</footer>
 </main>
 </body>
 </html>

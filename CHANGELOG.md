@@ -3,6 +3,29 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses semantic versioning.
 
+## [0.2.2] - 2026-11-14
+
+A fourth review, scoped to `src/assayer/application`. Every confirmed finding is fixed in the
+code with a regression test.
+
+### Fixed
+
+- Judge statistics and calibration use one judge version; a re-judged run no longer mixes
+  old and new judgements.
+- When judging stops (budget, or not cached in a replay), un-judged attempts are graded
+  "not measured" (harness error) instead of passing on checks alone; a replay whose judging
+  stopped is marked halted.
+- An attempt is released back to pending only if nothing was charged (a billed timeout counts).
+- A crashing judge is contained to its attempt; `validate` builds nested composite checks.
+- The live trace shows every agent message of a turn; released attempts are counted directly.
+- README: the sequence diagram rendered as a parse error on GitHub (a `;` ends a Mermaid
+  statement).
+
+### Added
+
+- A test for a budget halt in the middle of an attempt.
+- Real-model reports regenerated with the current layout, plus an HR run on the current code.
+
 ## [0.2.1] - 2026-11-14
 
 Two code reviews of the whole codebase, then of the fixes themselves. Every confirmed finding is

@@ -7,9 +7,9 @@ from typing import Protocol
 
 from pydantic import Field
 
-from assayer.application.analytics import RunAnalytics
+from assayer.application.analytics import RunAnalytics, analyze
 from assayer.application.compare import Comparison
-from assayer.application.queries import GradingView, ReadStore, run_analytics
+from assayer.application.queries import GradingView, ReadStore, judgements_of
 from assayer.application.scoring import JUDGE_ID, judge_inputs
 from assayer.domain.attempt import Attempt
 from assayer.domain.base import Model
@@ -158,7 +158,8 @@ async def build_run_report(
     cases = {c.id: c for c in await store.load_cases(meta.run_id)}
     views: list[AttemptView] = []
     judge_version = view_of.judge_version
-    for attempt, grade in await store.list_grades(meta.run_id, view_of.grader_version):
+    graded = await store.list_grades(meta.run_id, view_of.grader_version)
+    for attempt, grade in graded:
         case = cases.get(attempt.case_id)
         checks = await store.get_check_results(attempt.attempt_id)
         if view_of.checks is not None:
@@ -196,7 +197,13 @@ async def build_run_report(
     return RunReport(
         meta=meta,
         status=await store.run_status(meta.run_id),
-        analytics=await run_analytics(store, meta, view_of.grader_version),
+        # Reuse what was already fetched rather than querying grades and cases again.
+        analytics=analyze(
+            graded,
+            cases=list(cases.values()),
+            ledger=await store.ledger(meta.run_id),
+            judgements=await judgements_of(store, meta.run_id, judge_version),
+        ),
         attempts=views,
         generated_by=generated_by,
     )
