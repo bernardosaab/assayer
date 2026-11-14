@@ -98,6 +98,25 @@ def test_submit_creates_pending_request_without_deducting_balance() -> None:
     assert (balance["pending_days"], balance["available_days"]) == (2, 10)
 
 
+def test_repeated_submit_is_idempotent() -> None:
+    # Found by a real llama3.2:3b run: the agent re-submitted after "fingers crossed".
+    env = make_env()
+    args = {"employee_id": "E100", "start_date": "2026-12-03", "end_date": "2026-12-04"}
+    first = invoke(env, "submit_pto_request", **args)
+    again = invoke(env, "submit_pto_request", **args)
+    assert again["request_id"] == first["request_id"]
+    assert again["already_existed"] is True
+    snap = env.snapshot()
+    assert len(snap["final"]["pto_requests"]) == 1
+    assert len(snap["writes"]) == 1
+
+
+def test_briefing_gives_identity_and_date() -> None:
+    briefing = make_env().briefing()
+    assert "E100" in briefing
+    assert "2026-11-13" in briefing
+
+
 def test_holidays_and_weekends_are_not_counted() -> None:
     env = make_env({"current_user": "E200"})
     result = invoke(

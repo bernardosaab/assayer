@@ -55,6 +55,11 @@ class Environment(Protocol):
     @property
     def tools(self) -> Sequence[Tool]: ...
 
+    def briefing(self) -> str:
+        """Context the agent starts with (who the user is, today's date...). Context assembly
+        is the harness's job: a model cannot guess the date or the caller's identity."""
+        ...
+
     def snapshot(self) -> dict[str, Any]: ...
 
 

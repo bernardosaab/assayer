@@ -50,6 +50,15 @@
   .reasons { margin: 6px 0; padding-left: 18px; }
   .muted { color: var(--muted); } .ok { color: var(--pass); } .bad { color: var(--fail); }
   .hbar { height: 8px; background: var(--accent); border-radius: 4px; opacity: .7; }
+  ol.timeline { list-style: none; padding: 0; margin: 8px 0; display: flex; flex-direction: column; gap: 6px; }
+  ol.timeline li { max-width: 85%; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); }
+  ol.timeline .tl-who { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  ol.timeline .tl-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+  ol.timeline .tl-user { align-self: flex-start; background: var(--code); }
+  ol.timeline .tl-agent { align-self: flex-end; border-color: var(--accent); }
+  ol.timeline .tl-tool { align-self: center; max-width: 92%; font-size: 13px; border-style: dashed; }
+  ol.timeline .tl-error { border-color: var(--fail); background: var(--fail-bg); }
+  ol.timeline .tl-res { margin-top: 4px; font-size: 12px; overflow-wrap: anywhere; }
   footer { margin-top: 40px; color: var(--muted); font-size: 12px; }
 </style>
 </head>

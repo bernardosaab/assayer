@@ -33,6 +33,7 @@ from assayer.application.validate import validate_eval
 from assayer.cli import render
 from assayer.cli.container import Container, build_container, load_eval
 from assayer.cli.html import JinjaReportRenderer, write
+from assayer.cli.live import LiveObserver
 from assayer.config import Settings, load_settings
 from assayer.domain.errors import AssayerError
 from assayer.domain.money import Money
@@ -119,13 +120,21 @@ async def _meta(container: Container, run_id: str) -> RunMeta:
     return meta
 
 
-def _current_grader_version(meta: RunMeta, eval_ref: str | None) -> str:
-    """Grades are keyed by grader version; prefer the eval's current one, else the run's."""
+async def _grader_version(c: Container, meta: RunMeta, eval_ref: str | None) -> str:
+    """Which grades to read for a run.
+
+    Prefer the eval's *current* graders (so ``score`` after a check change shows the new
+    grades); fall back to the version the run was graded with when the current graders have not
+    been applied to it (e.g. the base side of a replay diff after the rubric changed).
+    """
     try:
         spec = load_eval(eval_ref or meta.eval_name)
     except AssayerError:
         return meta.grader_version
-    return grader_version(spec, spec.judge_version(meta.models.judge))
+    current = grader_version(spec, spec.judge_version(meta.models.judge))
+    if current != meta.grader_version and not await c.store.list_grades(meta.run_id, current):
+        return meta.grader_version
+    return current
 
 
 # --------------------------------------------------------------------------- run / score
@@ -152,6 +161,13 @@ def run(
     allow_unpriced: Annotated[
         bool, typer.Option("--allow-unpriced", help="Treat models missing from prices as free.")
     ] = False,
+    live: Annotated[
+        bool | None,
+        typer.Option("--live/--no-live", help="Live progress (default: on in a terminal)."),
+    ] = None,
+    trace: Annotated[
+        bool, typer.Option("--trace", help="Stream conversations turn by turn, with tool calls.")
+    ] = False,
     min_pass_rate: Annotated[
         float | None,
         typer.Option("--min-pass-rate", min=0, max=1, help="Exit 1 if the pass rate is lower."),
@@ -176,7 +192,14 @@ def run(
 
     async def go(c: Container) -> tuple[RunStatus, float | None]:
         assert c.harness is not None
-        result = await RunEval(c.store, c.harness, clock=c.clock, vcs=c.vcs)(options)
+        show = render.console.is_terminal if live is None else live
+        if show or trace:
+            with LiveObserver(render.console, trace=trace) as observer:
+                result = await RunEval(
+                    c.store, c.harness, clock=c.clock, vcs=c.vcs, observer=observer
+                )(options)
+        else:
+            result = await RunEval(c.store, c.harness, clock=c.clock, vcs=c.vcs)(options)
         render.render_run_result(result)
         pass_rate = None
         if result.scoring is not None:
@@ -247,7 +270,7 @@ def summary(
 
     async def go(c: Container) -> None:
         meta = await _meta(c, run_id)
-        version = _current_grader_version(meta, eval_ref)
+        version = await _grader_version(c, meta, eval_ref)
         render.render_analytics(meta, await run_analytics(c.store, meta, version))
 
     _run(lambda: _with_container(_settings(), go))
@@ -263,7 +286,7 @@ def failures_cmd(
 
     async def go(c: Container) -> None:
         meta = await _meta(c, run_id)
-        rows = await failures(c.store, meta.run_id, _current_grader_version(meta, eval_ref))
+        rows = await failures(c.store, meta.run_id, await _grader_version(c, meta, eval_ref))
         render.render_failures(rows, limit)
 
     _run(lambda: _with_container(_settings(), go))
@@ -347,7 +370,7 @@ def report(
 
     async def go(c: Container) -> Path:
         meta = await _meta(c, run_id)
-        version = _current_grader_version(meta, eval_ref)
+        version = await _grader_version(c, meta, eval_ref)
         model = await build_run_report(
             c.store, meta, version, generated_by=f"assayer {__version__}"
         )
@@ -375,9 +398,9 @@ def diff(
         base, cand = await _meta(c, base_run), await _meta(c, candidate_run)
         comparison = compare(
             base_run,
-            await c.store.list_grades(base_run, _current_grader_version(base, eval_ref)),
+            await c.store.list_grades(base_run, await _grader_version(c, base, eval_ref)),
             candidate_run,
-            await c.store.list_grades(candidate_run, _current_grader_version(cand, eval_ref)),
+            await c.store.list_grades(candidate_run, await _grader_version(c, cand, eval_ref)),
         )
         regressed = comparison.regressed(fail_on_drop)
         render.render_comparison(comparison, regressed, fail_on_drop)

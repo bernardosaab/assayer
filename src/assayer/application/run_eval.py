@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Protocol
 
+from assayer.application.events import RunObserver
 from assayer.application.execute import ExecutionReport, Executor
 from assayer.application.harness import Harness
 from assayer.application.scoring import ScoreReport, ScoreRun, ScoringStore, grader_version
@@ -83,7 +84,16 @@ def build_run_meta(harness: Harness, options: RunOptions, clock: Clock, vcs: Vcs
 
 
 class RunEval:
-    def __init__(self, store: RunStore, harness: Harness, *, clock: Clock, vcs: VcsInfo) -> None:
+    def __init__(
+        self,
+        store: RunStore,
+        harness: Harness,
+        *,
+        clock: Clock,
+        vcs: VcsInfo,
+        observer: RunObserver | None = None,
+    ) -> None:
+        self._observer = observer
         self._store = store
         self._harness = harness
         self._clock = clock
@@ -110,11 +120,14 @@ class RunEval:
             self._harness,
             concurrency=options.concurrency,
             circuit_breaker=options.circuit_breaker,
+            observer=self._observer,
         ).execute(meta.run_id)
 
         scoring = None
         if options.score:
-            scoring = await ScoreRun(self._store, self._harness)(meta.run_id, judge=options.judge)
+            scoring = await ScoreRun(self._store, self._harness, observer=self._observer)(
+                meta.run_id, judge=options.judge
+            )
 
         halted = execution.halted_reason or (scoring.halted_reason if scoring else None)
         unfinished = any(

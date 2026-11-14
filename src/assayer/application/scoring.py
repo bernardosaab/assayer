@@ -15,6 +15,14 @@ import logging
 from dataclasses import dataclass, field
 from typing import Protocol
 
+from assayer.application.events import (
+    Graded,
+    Judged,
+    NullObserver,
+    RunObserver,
+    StageStarted,
+    safe_notify,
+)
 from assayer.application.harness import Harness
 from assayer.application.registry import build_check
 from assayer.domain.attempt import Attempt, AttemptStatus
@@ -80,11 +88,17 @@ def judge_inputs(case: Case, output: TaskOutput | Transcript) -> tuple[str, str]
 
 class ScoreRun:
     def __init__(
-        self, store: ScoringStore, harness: Harness, *, judge_cache_only: bool = False
+        self,
+        store: ScoringStore,
+        harness: Harness,
+        *,
+        judge_cache_only: bool = False,
+        observer: RunObserver | None = None,
     ) -> None:
         self._store = store
         self._harness = harness
         self._cache_only = judge_cache_only
+        self._observer: RunObserver = observer or NullObserver()
 
     async def __call__(self, run_id: str, *, judge: bool = True) -> ScoreReport:
         spec = self._harness.spec
@@ -96,6 +110,7 @@ class ScoreRun:
         for attempt in succeeded:
             report.checks_computed += await self._check(attempt, cases[attempt.case_id])
         if judge and self._harness.judge is not None and self._harness.judge_binding is not None:
+            safe_notify(self._observer, StageStarted("judge", len(succeeded)))
             await self._judge_all(run_id, succeeded, cases, report)
         elif spec.judge is not None and judge:
             report.notes.append("eval defines a judge rubric but no judge model is configured")
@@ -108,10 +123,18 @@ class ScoreRun:
         version = grader_version(spec, self._harness.judge_version)
         for attempt in attempts:
             if attempt.status in (AttemptStatus.SUCCEEDED, AttemptStatus.HARNESS_ERROR):
-                await self._store.save_grade(
-                    attempt.attempt_id, version, await self._grade(attempt, cases[attempt.case_id])
-                )
+                graded = await self._grade(attempt, cases[attempt.case_id])
+                await self._store.save_grade(attempt.attempt_id, version, graded)
                 report.grades += 1
+                safe_notify(
+                    self._observer,
+                    Graded(
+                        attempt.case_id,
+                        attempt.repeat,
+                        graded.outcome.value,
+                        tuple(graded.reasons),
+                    ),
+                )
         return report
 
     async def _check(self, attempt: Attempt, case: Case) -> int:
@@ -182,6 +205,17 @@ class ScoreRun:
                 report.judgements_computed += 1
             if verdict.verdict_final is None:
                 report.judge_errors += 1
+            safe_notify(
+                self._observer,
+                Judged(
+                    attempt.case_id,
+                    attempt.repeat,
+                    verdict.verdict_final,
+                    verdict.reasks,
+                    len(verdict.dropped),
+                    cached=cached is not None,
+                ),
+            )
             await self._store.save_judgement(
                 StoredJudgement(
                     attempt_id=attempt.attempt_id,

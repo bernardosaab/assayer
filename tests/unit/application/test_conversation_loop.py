@@ -20,6 +20,9 @@ class _Env:
     def tools(self) -> Sequence[Tool]:
         return []
 
+    def briefing(self) -> str:
+        return "Today is 2026-11-13."
+
     def snapshot(self) -> dict[str, Any]:
         return {"final": {"ok": True}}
 

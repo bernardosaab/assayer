@@ -8,6 +8,12 @@ task:
   runner: extraction
   prompt: prompts/system.md
   output_schema: schema.yaml
+  args:
+    # Numbers come from code: the model extracts a year that is written in the document,
+    # and the runner derives years of experience. Asking a small model to do the subtraction
+    # failed in practice (it copied the reference year). See docs/hill-climbing.md.
+    derive:
+      years_experience: {years_since: first_job_start_year, as_of: 2026}
 
 # Deterministic sensors first: they settle what code can settle.
 checks:
@@ -28,3 +34,6 @@ judge:
       text: >
         current_title and current_employer describe the person's CURRENT role (the one without
         an end date), not a previous one.
+      # A violation must quote the wrong value from the output. Added after a real 7B judge
+      # "proved" violations by quoting correct lines of the résumé (docs/hill-climbing.md).
+      quote_from: subject

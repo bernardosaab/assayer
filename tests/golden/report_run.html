@@ -50,6 +50,15 @@
   .reasons { margin: 6px 0; padding-left: 18px; }
   .muted { color: var(--muted); } .ok { color: var(--pass); } .bad { color: var(--fail); }
   .hbar { height: 8px; background: var(--accent); border-radius: 4px; opacity: .7; }
+  ol.timeline { list-style: none; padding: 0; margin: 8px 0; display: flex; flex-direction: column; gap: 6px; }
+  ol.timeline li { max-width: 85%; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); }
+  ol.timeline .tl-who { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  ol.timeline .tl-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+  ol.timeline .tl-user { align-self: flex-start; background: var(--code); }
+  ol.timeline .tl-agent { align-self: flex-end; border-color: var(--accent); }
+  ol.timeline .tl-tool { align-self: center; max-width: 92%; font-size: 13px; border-style: dashed; }
+  ol.timeline .tl-error { border-color: var(--fail); background: var(--fail-bg); }
+  ol.timeline .tl-res { margin-top: 4px; font-size: 12px; overflow-wrap: anywhere; }
   footer { margin-top: 40px; color: var(--muted); font-size: 12px; }
 </style>
 </head>
@@ -75,7 +84,7 @@
   <div class="card kpi">
     <div class="label">Cost per success</div>
     <div class="value">$0.0003</div>
-    <div class="note">all spend $0.0011 ÷ 4 passing</div>
+    <div class="note">all spend $0.0012 ÷ 4 passing</div>
   </div>
   <div class="card kpi">
     <div class="label">Latency p50 / p95</div>
@@ -113,9 +122,9 @@
     <dl class="meta">
       <dt>Created</dt><dd>2026-01-01 00:00 UTC</dd>
       <dt>Git</dt><dd><code>000000000000</code></dd>
-      <dt>Prompt version</dt><dd><code>ae8584b788fd303f</code></dd>
-      <dt>Judge version</dt><dd><code>a4f48589bd56dab1</code></dd>
-      <dt>Grader version</dt><dd><code>974dab0e48716053</code></dd>
+      <dt>Prompt version</dt><dd><code>3423f0a99896d3a5</code></dd>
+      <dt>Judge version</dt><dd><code>38aa5f34d6c8629a</code></dd>
+      <dt>Grader version</dt><dd><code>1f56285f46dc9877</code></dd>
       <dt>Round</dt><dd>1</dd>
     </dl>
   </div>
@@ -125,7 +134,7 @@
       <dt>Simulator</dt><dd><code>n/a</code></dd>
       <dt>Judge</dt><dd><code>fake/judge</code></dd>
       <dt>Budget</dt><dd>$1.0000</dd>
-      <dt>Spend</dt><dd>$0.0011 · agent $0.0003 · judge $0.0008</dd>
+      <dt>Spend</dt><dd>$0.0012 · agent $0.0003 · judge $0.0008</dd>
     </dl>
   </div>
   <div class="card">
@@ -165,7 +174,7 @@
     <p><strong>Judge</strong> <span class="muted">(raw verdict fail, final fail, 0 re-asks)</span></p>
 <pre>no_fabrication: all values appear in the source. current_role: the source marks Brightwave Analytics as (2024 - Present); the output names the earlier employer.
 </pre>    <p><span class="ok">✓ verified</span>       <code>current_role</code>: “&#34;current_employer&#34;: &#34;Globex Corporation&#34;”<span class="muted">, Globex Corporation ended in 2024; the current employer is Brightwave Analytics.</span></p>
-<pre>{&#34;name&#34;: &#34;Carlos Ruiz&#34;, &#34;current_title&#34;: &#34;Regional Sales Manager&#34;, &#34;current_employer&#34;: &#34;Globex Corporation&#34;, &#34;years_experience&#34;: 12, &#34;skills&#34;: [&#34;SQL&#34;, &#34;Looker&#34;, &#34;Python&#34;, &#34;Excel&#34;]}</pre>  </div>
+<pre>{&#34;name&#34;: &#34;Carlos Ruiz&#34;, &#34;current_title&#34;: &#34;Regional Sales Manager&#34;, &#34;current_employer&#34;: &#34;Globex Corporation&#34;, &#34;first_job_start_year&#34;: 2014, &#34;skills&#34;: [&#34;SQL&#34;, &#34;Looker&#34;, &#34;Python&#34;, &#34;Excel&#34;]}</pre>  </div>
 </details>
 <details class="attempt" open>
   <summary>
@@ -217,7 +226,7 @@
     </table>
     <p><strong>Judge</strong> <span class="muted">(raw verdict fail, final pass, 0 re-asks)</span></p>
 <pre>The output may overstate experience.</pre>    <p><span class="bad">✗ dropped (quote not in evidence)</span>       <code>no_fabrication</code>: “worked on satellite telemetry at NASA”<span class="muted">, Not supported by the source.</span></p>
-<pre>{&#34;name&#34;: &#34;Amara Okafor&#34;, &#34;current_title&#34;: &#34;Platform Engineer&#34;, &#34;current_employer&#34;: &#34;Contoso Cloud&#34;, &#34;years_experience&#34;: 11, &#34;skills&#34;: [&#34;Terraform&#34;, &#34;Go&#34;, &#34;AWS&#34;, &#34;Kubernetes&#34;, &#34;Prometheus&#34;]}</pre>  </div>
+<pre>{&#34;name&#34;: &#34;Amara Okafor&#34;, &#34;current_title&#34;: &#34;Platform Engineer&#34;, &#34;current_employer&#34;: &#34;Contoso Cloud&#34;, &#34;first_job_start_year&#34;: 2015, &#34;skills&#34;: [&#34;Terraform&#34;, &#34;Go&#34;, &#34;AWS&#34;, &#34;Kubernetes&#34;, &#34;Prometheus&#34;]}</pre>  </div>
 </details>
 <details class="attempt">
   <summary>
@@ -242,7 +251,7 @@
           <td class="muted"></td></tr>
     </table>
     <p><strong>Judge</strong> <span class="muted">(raw verdict pass, final pass, 0 re-asks)</span></p>
-<pre>Every extracted value appears in the source and describes the current role.</pre><pre>{&#34;name&#34;: &#34;Jane Doe&#34;, &#34;current_title&#34;: &#34;Senior Software Engineer&#34;, &#34;current_employer&#34;: &#34;Acme Corp&#34;, &#34;years_experience&#34;: 10, &#34;skills&#34;: [&#34;Python&#34;, &#34;PostgreSQL&#34;, &#34;Kafka&#34;, &#34;Kubernetes&#34;]}</pre>  </div>
+<pre>Every extracted value appears in the source and describes the current role.</pre><pre>{&#34;name&#34;: &#34;Jane Doe&#34;, &#34;current_title&#34;: &#34;Senior Software Engineer&#34;, &#34;current_employer&#34;: &#34;Acme Corp&#34;, &#34;first_job_start_year&#34;: 2016, &#34;skills&#34;: [&#34;Python&#34;, &#34;PostgreSQL&#34;, &#34;Kafka&#34;, &#34;Kubernetes&#34;]}</pre>  </div>
 </details>
 <details class="attempt">
   <summary>
@@ -267,7 +276,7 @@
           <td class="muted"></td></tr>
     </table>
     <p><strong>Judge</strong> <span class="muted">(raw verdict pass, final pass, 1 re-asks)</span></p>
-<pre>Every extracted value appears in the source and describes the current role.</pre><pre>{&#34;name&#34;: &#34;Mei Chen&#34;, &#34;current_title&#34;: &#34;Machine Learning Engineer&#34;, &#34;current_employer&#34;: &#34;Northwind Health&#34;, &#34;years_experience&#34;: 8, &#34;skills&#34;: [&#34;PyTorch&#34;, &#34;Python&#34;, &#34;MLflow&#34;, &#34;Airflow&#34;, &#34;GCP&#34;]}</pre>  </div>
+<pre>Every extracted value appears in the source and describes the current role.</pre><pre>{&#34;name&#34;: &#34;Mei Chen&#34;, &#34;current_title&#34;: &#34;Machine Learning Engineer&#34;, &#34;current_employer&#34;: &#34;Northwind Health&#34;, &#34;first_job_start_year&#34;: 2018, &#34;skills&#34;: [&#34;PyTorch&#34;, &#34;Python&#34;, &#34;MLflow&#34;, &#34;Airflow&#34;, &#34;GCP&#34;]}</pre>  </div>
 </details>
 <details class="attempt">
   <summary>
@@ -292,7 +301,7 @@
           <td class="muted"></td></tr>
     </table>
     <p><strong>Judge</strong> <span class="muted">(raw verdict pass, final pass, 0 re-asks)</span></p>
-<pre>Every extracted value appears in the source and describes the current role.</pre><pre>{&#34;name&#34;: &#34;Tomasz Nowak&#34;, &#34;current_title&#34;: &#34;Staff Engineer (Software)&#34;, &#34;current_employer&#34;: &#34;Wayne Enterprises&#34;, &#34;years_experience&#34;: 14, &#34;skills&#34;: [&#34;Java&#34;, &#34;Kotlin&#34;, &#34;gRPC&#34;, &#34;Spanner&#34;]}</pre>  </div>
+<pre>Every extracted value appears in the source and describes the current role.</pre><pre>{&#34;name&#34;: &#34;Tomasz Nowak&#34;, &#34;current_title&#34;: &#34;Staff Engineer (Software)&#34;, &#34;current_employer&#34;: &#34;Wayne Enterprises&#34;, &#34;first_job_start_year&#34;: 2012, &#34;skills&#34;: [&#34;Java&#34;, &#34;Kotlin&#34;, &#34;gRPC&#34;, &#34;Spanner&#34;]}</pre>  </div>
 </details>
 <footer>Generated by assayer (test). Harness errors are excluded from every rate. Intervals are 95% Wilson.</footer>
 </main>

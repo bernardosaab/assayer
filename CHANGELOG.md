@@ -3,6 +3,24 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses semantic versioning.
 
+## [0.2.0] - 2026-11-14
+
+### Added
+
+- Live terminal view of runs (`--live/--no-live`, `--trace` for turn-by-turn conversations), built on
+  a run-event observer port (ADR-0021).
+- Conversation timelines and committed writes in HTML reports; a "How it works" page on the demo site.
+- Real local-model results (Ollama: llama3.2:3b agent, qwen2.5:7b judge) published with paired diffs.
+- `Environment.briefing()` for context assembly; `derive` for numbers computed in code;
+  `quote_from: subject` for judge criteria (ADR-0022).
+
+### Fixed
+
+- `diff`, `summary`, `failures` and `report` read grades under the version a run was graded with when
+  the current graders have not been applied to it.
+- The cost bound counts real UTF-8 bytes rather than JSON escape sequences (less over-reservation).
+- HR environment: a repeated PTO submit is idempotent.
+
 ## [0.1.0] - 2026-11-13
 
 ### Added

@@ -131,7 +131,22 @@
        <code>{{ f.finding.criterion_id }}</code>: “{{ f.finding.quote }}”{% if f.finding.explanation %}<span class="muted">, {{ f.finding.explanation }}</span>{% endif %}</p>
     {% endfor %}
     {% endif %}
-    {% if v.output_text %}<pre>{{ v.output_text }}</pre>{% endif %}
+    {% if v.timeline %}
+    <p><strong>Conversation</strong> <span class="muted">({{ v.turns }} turns, ended: {{ v.termination }})</span></p>
+    <ol class="timeline">
+      {% for item in v.timeline %}
+      <li class="tl-{{ item.actor }}{% if item.error %} tl-error{% endif %}">
+        <span class="tl-who">{{ "tool" if item.actor == "tool" else item.actor }}</span>
+        {% if item.actor == "tool" %}<code>{{ item.text }}</code>
+          {% if item.error %}<div class="tl-res bad">✗ {{ item.error }}</div>{% elif item.result %}<div class="tl-res muted"><code>{{ item.result }}</code></div>{% endif %}
+        {% else %}<div class="tl-text">{{ item.text }}</div>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+    <p><strong>System of record</strong> <span class="muted">(writes that actually committed)</span></p>
+    {% if v.writes %}<ul class="reasons">{% for w in v.writes %}<li><code>{{ w }}</code></li>{% endfor %}</ul>
+    {% else %}<p class="muted">No writes.</p>{% endif %}
+    {% elif v.output_text %}<pre>{{ v.output_text }}</pre>{% endif %}
   </div>
 </details>
 {% endfor %}

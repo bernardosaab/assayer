@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>resume_extraction · ollama-resume</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --surface: #ffffff; --text: #1d1d1f; --muted: #6b6b70; --border: #e3e3e0;
+    --pass: #1f7a4d; --pass-bg: #e3f3ea; --fail: #b3261e; --fail-bg: #fbe7e5;
+    --err: #8a5a00; --err-bg: #fbf0d9; --accent: #2f5bd3; --bar: #d9dde6; --code: #f1f1ee;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141416; --surface: #1c1c1f; --text: #ececee; --muted: #9a9aa2; --border: #2e2e33;
+      --pass: #5fcf95; --pass-bg: #163325; --fail: #ff8a80; --fail-bg: #3a1c1a;
+      --err: #f0c26b; --err-bg: #3a2e14; --accent: #8fa8ff; --bar: #34343b; --code: #232327;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 26px; margin: 0 0 4px; } h2 { font-size: 18px; margin: 32px 0 12px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+  .kpi .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .kpi .value { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .kpi .note { color: var(--muted); font-size: 12px; }
+  .ci { position: relative; height: 8px; background: var(--bar); border-radius: 4px; margin-top: 8px; }
+  .ci .band { position: absolute; top: 0; bottom: 0; background: var(--accent); opacity: .35; border-radius: 4px; }
+  .ci .point { position: absolute; top: -3px; width: 3px; height: 14px; background: var(--accent); border-radius: 2px; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  td.num, th.num { text-align: right; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .pass { color: var(--pass); background: var(--pass-bg); }
+  .fail { color: var(--fail); background: var(--fail-bg); }
+  .harness_error, .halted, .open { color: var(--err); background: var(--err-bg); }
+  .complete { color: var(--pass); background: var(--pass-bg); }
+  .meta { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; font-size: 13px; }
+  .meta dt { color: var(--muted); } .meta dd { margin: 0; overflow-wrap: anywhere; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
+  pre { background: var(--code); padding: 12px; border-radius: 8px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0; }
+  details.attempt { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin: 8px 0; }
+  details.attempt > summary { cursor: pointer; padding: 10px 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  details.attempt > div { padding: 0 14px 14px; }
+  .reasons { margin: 6px 0; padding-left: 18px; }
+  .muted { color: var(--muted); } .ok { color: var(--pass); } .bad { color: var(--fail); }
+  .hbar { height: 8px; background: var(--accent); border-radius: 4px; opacity: .7; }
+  ol.timeline { list-style: none; padding: 0; margin: 8px 0; display: flex; flex-direction: column; gap: 6px; }
+  ol.timeline li { max-width: 85%; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); }
+  ol.timeline .tl-who { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  ol.timeline .tl-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+  ol.timeline .tl-user { align-self: flex-start; background: var(--code); }
+  ol.timeline .tl-agent { align-self: flex-end; border-color: var(--accent); }
+  ol.timeline .tl-tool { align-self: center; max-width: 92%; font-size: 13px; border-style: dashed; }
+  ol.timeline .tl-error { border-color: var(--fail); background: var(--fail-bg); }
+  ol.timeline .tl-res { margin-top: 4px; font-size: 12px; overflow-wrap: anywhere; }
+  footer { margin-top: 40px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+<h1>resume_extraction <span class="badge complete">complete</span></h1>
+<p class="sub">Run <code>ollama-resume</code> · 6 cases × 1 repeat</p>
+
+<div class="grid">
+  <div class="card kpi">
+    <div class="label">Pass rate</div>
+    <div class="value">0.0%</div>
+    <div class="note">95% CI 0.0% to 39.0% · n=6</div>
+    <div class="ci" role="img" aria-label="confidence interval">
+      <div class="band" style="left: 0.0%; width: 39.0%"></div>
+<div class="point" style="left: calc(0.0% - 1px)"></div>    </div>
+  </div>
+  <div class="card kpi">
+    <div class="label">pass^k (k=1)</div>
+    <div class="value">0.0%</div>
+    <div class="note">cases passing every repeat · pass@k 0.0%</div>
+  </div>
+  <div class="card kpi">
+    <div class="label">Cost per success</div>
+    <div class="value">n/a</div>
+    <div class="note">all spend $0.0000 ÷ 0 passing</div>
+  </div>
+  <div class="card kpi">
+    <div class="label">Latency p50 / p95</div>
+    <div class="value">2,543 ms</div>
+    <div class="note">p95 3,075 ms</div>
+  </div>
+  <div class="card kpi">
+    <div class="label">Outcomes</div>
+    <div class="value">0<span class="muted"> / </span>6<span class="muted"> / </span>0</div>
+    <div class="note">pass / fail / harness error (not counted)</div>
+  </div>
+</div>
+
+<h2>Failure causes</h2>
+<div class="card">
+<table>
+  <tr><th>Cause</th><th class="num">Failing attempts</th><th style="width:40%"></th></tr>
+  <tr><td><code>check:field_match</code></td><td class="num">6</td>
+      <td><div class="hbar" style="width: 100.0%"></div></td></tr>
+  <tr><td><code>judge:current_role</code></td><td class="num">2</td>
+      <td><div class="hbar" style="width: 33.3%"></div></td></tr>
+  <tr><td><code>judge:no_fabrication</code></td><td class="num">1</td>
+      <td><div class="hbar" style="width: 16.7%"></div></td></tr>
+</table>
+</div>
+
+
+<h2>Run record</h2>
+<div class="grid">
+  <div class="card">
+    <dl class="meta">
+      <dt>Created</dt><dd>2026-11-14 09:07 UTC</dd>
+      <dt>Git</dt><dd><code>68f4fe4c1769</code> (uncommitted changes)</dd>
+      <dt>Prompt version</dt><dd><code>ae8584b788fd303f</code></dd>
+      <dt>Judge version</dt><dd><code>65c608168a5eeffc</code></dd>
+      <dt>Grader version</dt><dd><code>5717f8aded3bc610</code></dd>
+      <dt>Round</dt><dd>1</dd>
+    </dl>
+  </div>
+  <div class="card">
+    <dl class="meta">
+      <dt>Agent</dt><dd><code>ollama/llama3.2:3b</code></dd>
+      <dt>Simulator</dt><dd><code>n/a</code></dd>
+      <dt>Judge</dt><dd><code>ollama/qwen2.5:7b</code></dd>
+      <dt>Budget</dt><dd>$1.0000</dd>
+      <dt>Spend</dt><dd>$0.0000 · agent $0.0000 · judge $0.0000</dd>
+    </dl>
+  </div>
+  <div class="card">
+    <dl class="meta">
+      <dt>Judgements</dt><dd>6 (0 errors)</dd>
+      <dt>Re-asks</dt><dd>0 (contradiction or unparseable)</dd>
+      <dt>Quotes dropped</dt><dd>0 of 3 findings (0.0%)</dd>
+      <dt>Overturned</dt><dd>0 "fail" verdicts with no verifiable evidence</dd>
+    </dl>
+  </div>
+</div>
+
+<h2>Attempts</h2>
+<details class="attempt" open>
+  <summary>
+    <span class="badge fail">fail</span>
+    <strong>amara-okafor</strong>
+    <span class="muted">repeat 0 · task · $0.0000</span>
+  </summary>
+  <div>
+    <ul class="reasons"><li>check field_match: 1 field(s) differ: years_experience</li></ul>
+    <table>
+      <tr><th>Check</th><th>Result</th><th>Detail</th></tr>
+      <tr><td><code>field_match</code></td>
+          <td><span class="bad">fail</span></td>
+          <td class="muted">1 field(s) differ: years_experience</td></tr>
+      <tr><td><code>grounded</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+      <tr><td><code>set_f1</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+      <tr><td><code>trap_absent</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+    </table>
+    <p><strong>Judge</strong> <span class="muted">(raw verdict pass, final pass, 0 re-asks)</span></p>
+<pre>The current role is described as &#39;Platform Engineer&#39; at &#39;Contoso Cloud&#39; with no end date, which matches the SOURCE DOCUMENT. However, the years of experience are calculated based on the current role&#39;s start date (2019) and the current year, which is not provided in the evidence. The skills listed are accurate and directly quoted from the SOURCE DOCUMENT.</pre><pre>{
+  &#34;name&#34;: &#34;AMARA OKAFOR&#34;,
+  &#34;current_title&#34;: &#34;Platform Engineer&#34;,
+  &#34;current_employer&#34;: &#34;Contoso Cloud&#34;,
+  &#34;years_experience&#34;: 7,
+  &#34;skills&#34;: [
+    &#34;Terraform&#34;,
+    &#34;Go&#34;,
+    &#34;AWS&#34;,
+    &#34;Kubernetes&#34;,
+    &#34;Prometheus&#34;,
+    &#34;Grafana&#34;
+  ]
+}</pre>  </div>
+</details>
+<details class="attempt" open>
+  <summary>
+    <span class="badge fail">fail</span>
+    <strong>carlos-ruiz</strong>
+    <span class="muted">repeat 0 · task · $0.0000</span>
+  </summary>
+  <div>
+    <ul class="reasons"><li>check field_match: 1 field(s) differ: years_experience</li></ul>
+    <table>
+      <tr><th>Check</th><th>Result</th><th>Detail</th></tr>
+      <tr><td><code>field_match</code></td>
+          <td><span class="bad">fail</span></td>
+          <td class="muted">1 field(s) differ: years_experience</td></tr>
+      <tr><td><code>grounded</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+      <tr><td><code>set_f1</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+      <tr><td><code>trap_absent</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+    </table>
+    <p><strong>Judge</strong> <span class="muted">(raw verdict pass, final pass, 0 re-asks)</span></p>
+<pre>Let&#39;s evaluate the criteria one by one. For the &#39;current_title&#39; and &#39;current_employer&#39;, the extracted output states that Carlos Ruiz is a &#39;Data Analyst&#39; at &#39;Brightwave Analytics&#39;. However, the source document indicates that his current role is &#39;Data Analyst&#39; at &#39;Brightwave Analytics&#39; (2024 - Present), which is consistent. There is no evidence of fabrication in the skills section, as the skills listed match those in the source document.</pre><pre>{
+  &#34;name&#34;: &#34;Carlos Ruiz&#34;,
+  &#34;current_title&#34;: &#34;Data Analyst&#34;,
+  &#34;current_employer&#34;: &#34;Brightwave Analytics&#34;,
+  &#34;years_experience&#34;: 2,
+  &#34;skills&#34;: [&#34;SQL&#34;, &#34;Looker&#34;, &#34;Python&#34;, &#34;Excel&#34;]
+}</pre>  </div>
+</details>
+<details class="attempt" open>
+  <summary>
+    <span class="badge fail">fail</span>
+    <strong>jane-doe</strong>
+    <span class="muted">repeat 0 · task · $0.0000</span>
+  </summary>
+  <div>
+    <ul class="reasons"><li>check field_match: 1 field(s) differ: years_experience</li><li>judge no_fabrication: The source document lists &#39;Software Engineer, Initech - 2016 to 2020&#39; as a previous role, but the extracted output incorrectly states that &#39;Senior Software Engineer, Acme Corp - 2020 to Present&#39; is the current role. This suggests fabrication of the current role.</li></ul>
+    <table>
+      <tr><th>Check</th><th>Result</th><th>Detail</th></tr>
+      <tr><td><code>field_match</code></td>
+          <td><span class="bad">fail</span></td>
+          <td class="muted">1 field(s) differ: years_experience</td></tr>
+      <tr><td><code>grounded</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+      <tr><td><code>set_f1</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+      <tr><td><code>trap_absent</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+    </table>
+    <p><strong>Judge</strong> <span class="muted">(raw verdict fail, final fail, 0 re-asks)</span></p>
+<pre>Let&#39;s evaluate the criteria one by one. For the &#39;no_fabrication&#39; criterion, we need to ensure that all the information in the extracted output is supported by the source document. For the &#39;current_role&#39; criterion, we need to confirm that the current role and employer are correctly identified as the one without an end date.</pre>    <p><span class="ok">✓ verified</span>       <code>no_fabrication</code>: “Software Engineer, Initech - 2016 to 2020”<span class="muted">, The source document lists &#39;Software Engineer, Initech - 2016 to 2020&#39; as a previous role, but the extracted output incorrectly states that &#39;Senior Software Engineer, Acme Corp - 2020 to Present&#39; is the current role. This suggests fabrication of the current role.</span></p>
+<pre>{
+  &#34;name&#34;: &#34;JANE DOE&#34;,
+  &#34;current_title&#34;: &#34;Senior Software Engineer&#34;,
+  &#34;current_employer&#34;: &#34;Acme Corp&#34;,
+  &#34;years_experience&#34;: 7,
+  &#34;skills&#34;: [
+    &#34;Python&#34;,
+    &#34;PostgreSQL&#34;,
+    &#34;Kafka&#34;,
+    &#34;Kubernetes&#34;
+  ]
+}</pre>  </div>
+</details>
+<details class="attempt">
+  <summary>
+    <span class="badge fail">fail</span>
+    <strong>mei-chen</strong>
+    <span class="muted">repeat 0 · task · $0.0000</span>
+  </summary>
+  <div>
+    <ul class="reasons"><li>check field_match: 1 field(s) differ: years_experience</li><li>judge current_role: This role is listed as a past role in the SOURCE DOCUMENT, indicating that Mei Chen no longer holds this position.</li></ul>
+    <table>
+      <tr><th>Check</th><th>Result</th><th>Detail</th></tr>
+      <tr><td><code>field_match</code></td>
+          <td><span class="bad">fail</span></td>
+          <td class="muted">1 field(s) differ: years_experience</td></tr>
+      <tr><td><code>grounded</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+      <tr><td><code>set_f1</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+      <tr><td><code>trap_absent</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+    </table>
+    <p><strong>Judge</strong> <span class="muted">(raw verdict fail, final fail, 0 re-asks)</span></p>
+<pre>The current role described in the EXTRACTED OUTPUT is &#39;Machine Learning Engineer @ Northwind Health (2021-Present)&#39;, which is the most recent role. However, the SOURCE DOCUMENT lists &#39;Machine Learning Engineer @ Northwind Health (2021-Present)&#39; as a past role, indicating that Mei Chen no longer holds this position. The current role should be &#39;Research Assistant @ Vector Lab (2018-2021)&#39;, as it is the most recent role in the SOURCE DOCUMENT.</pre>    <p><span class="ok">✓ verified</span>       <code>current_role</code>: “Machine Learning Engineer @ Northwind Health (2021-Present)”<span class="muted">, This role is listed as a past role in the SOURCE DOCUMENT, indicating that Mei Chen no longer holds this position.</span></p>
+<pre>{
+  &#34;name&#34;: &#34;Mei Chen&#34;,
+  &#34;current_title&#34;: &#34;Machine Learning Engineer&#34;,
+  &#34;current_employer&#34;: &#34;Northwind Health&#34;,
+  &#34;years_experience&#34;: 5,
+  &#34;skills&#34;: [
+    &#34;PyTorch&#34;,
+    &#34;Python&#34;,
+    &#34;MLflow&#34;,
+    &#34;Airflow&#34;,
+    &#34;GCP&#34;
+  ]
+}</pre>  </div>
+</details>
+<details class="attempt">
+  <summary>
+    <span class="badge fail">fail</span>
+    <strong>priya-sharma</strong>
+    <span class="muted">repeat 0 · task · $0.0000</span>
+  </summary>
+  <div>
+    <ul class="reasons"><li>check field_match: 1 field(s) differ: years_experience</li><li>judge current_role: The current role should be the one without an end date, but &#39;Tech Lead&#39; has an end date and is incorrectly listed as the current role.</li></ul>
+    <table>
+      <tr><th>Check</th><th>Result</th><th>Detail</th></tr>
+      <tr><td><code>field_match</code></td>
+          <td><span class="bad">fail</span></td>
+          <td class="muted">1 field(s) differ: years_experience</td></tr>
+      <tr><td><code>grounded</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+      <tr><td><code>set_f1</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+      <tr><td><code>trap_absent</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+    </table>
+    <p><strong>Judge</strong> <span class="muted">(raw verdict fail, final fail, 0 re-asks)</span></p>
+<pre>The current role should be the one without an end date, which is &#39;Engineering Manager&#39; at &#39;Umbrella Retail&#39;. The previous role &#39;Tech Lead&#39; has an end date, so it should not be described as the current role.</pre>    <p><span class="ok">✓ verified</span>       <code>current_role</code>: “Engineering Manager, Umbrella Retail (2022 - Present)”<span class="muted">, The current role should be the one without an end date, but &#39;Tech Lead&#39; has an end date and is incorrectly listed as the current role.</span></p>
+<pre>{
+  &#34;name&#34;: &#34;Priya Sharma&#34;,
+  &#34;current_title&#34;: &#34;Engineering Manager&#34;,
+  &#34;current_employer&#34;: &#34;Umbrella Retail&#34;,
+  &#34;years_experience&#34;: 4,
+  &#34;skills&#34;: [&#34;TypeScript&#34;, &#34;React&#34;, &#34;Node.js&#34;, &#34;AWS&#34;]
+}</pre>  </div>
+</details>
+<details class="attempt">
+  <summary>
+    <span class="badge fail">fail</span>
+    <strong>tomasz-nowak</strong>
+    <span class="muted">repeat 0 · task · $0.0000</span>
+  </summary>
+  <div>
+    <ul class="reasons"><li>check field_match: 1 field(s) differ: years_experience</li></ul>
+    <table>
+      <tr><th>Check</th><th>Result</th><th>Detail</th></tr>
+      <tr><td><code>field_match</code></td>
+          <td><span class="bad">fail</span></td>
+          <td class="muted">1 field(s) differ: years_experience</td></tr>
+      <tr><td><code>grounded</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+      <tr><td><code>set_f1</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+      <tr><td><code>trap_absent</code></td>
+          <td><span class="ok">pass</span></td>
+          <td class="muted"></td></tr>
+    </table>
+    <p><strong>Judge</strong> <span class="muted">(raw verdict pass, final pass, 0 re-asks)</span></p>
+<pre>The current role described in the EXTRACTED OUTPUT is &#39;Staff Engineer (Software)&#39; at &#39;Wayne Enterprises&#39;, which is the most recent role without an end date. The role and employer are correctly identified based on the SOURCE DOCUMENT.</pre><pre>{
+  &#34;name&#34;: &#34;Tomasz Nowak&#34;,
+  &#34;current_title&#34;: &#34;Staff Engineer (Software)&#34;,
+  &#34;current_employer&#34;: &#34;Wayne Enterprises&#34;,
+  &#34;years_experience&#34;: 8,
+  &#34;skills&#34;: [
+    &#34;Java&#34;,
+    &#34;Kotlin&#34;,
+    &#34;gRPC&#34;,
+    &#34;Spanner&#34;
+  ]
+}</pre>  </div>
+</details>
+<footer>Generated by assayer 0.1.0.dev0. Harness errors are excluded from every rate. Intervals are 95% Wilson.</footer>
+</main>
+</body>
+</html>

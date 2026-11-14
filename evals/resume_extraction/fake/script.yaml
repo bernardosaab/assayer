@@ -10,25 +10,25 @@
 - match: {purpose: agent, case_id: jane-doe}
   respond:
     json: {name: Jane Doe, current_title: Senior Software Engineer, current_employer: Acme Corp,
-           years_experience: 10, skills: [Python, PostgreSQL, Kafka, Kubernetes]}
+           first_job_start_year: 2016, skills: [Python, PostgreSQL, Kafka, Kubernetes]}
 - match: {purpose: agent, case_id: carlos-ruiz}
   respond:
     json: {name: Carlos Ruiz, current_title: Regional Sales Manager,
-           current_employer: Globex Corporation, years_experience: 12,
+           current_employer: Globex Corporation, first_job_start_year: 2014,
            skills: [SQL, Looker, Python, Excel]}
 - match: {purpose: agent, case_id: mei-chen}
   respond:
     json: {name: Mei Chen, current_title: Machine Learning Engineer,
-           current_employer: Northwind Health, years_experience: 8,
+           current_employer: Northwind Health, first_job_start_year: 2018,
            skills: [PyTorch, Python, MLflow, Airflow, GCP]}
 - match: {purpose: agent, case_id: amara-okafor}
   respond:
     json: {name: Amara Okafor, current_title: Platform Engineer, current_employer: Contoso Cloud,
-           years_experience: 11, skills: [Terraform, Go, AWS, Kubernetes, Prometheus]}
+           first_job_start_year: 2015, skills: [Terraform, Go, AWS, Kubernetes, Prometheus]}
 - match: {purpose: agent, case_id: tomasz-nowak}
   respond:
     json: {name: Tomasz Nowak, current_title: Staff Engineer (Software),
-           current_employer: Wayne Enterprises, years_experience: 14,
+           current_employer: Wayne Enterprises, first_job_start_year: 2012,
            skills: [Java, Kotlin, gRPC, Spanner]}
 - match: {purpose: agent, case_id: priya-sharma}
   respond:

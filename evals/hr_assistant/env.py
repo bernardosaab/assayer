@@ -298,6 +298,27 @@ class HrSystem:
             raise ToolError("invalid dates: end_date is before start_date")
         if args.start_date < self.today:
             raise ToolError(f"invalid dates: start_date is in the past (today is {self.today})")
+        duplicate = next(
+            (
+                r
+                for r in self.state["pto_requests"]
+                if r["employee_id"] == self.user
+                and r["status"] == "pending_approval"
+                and r["start_date"] == args.start_date.isoformat()
+                and r["end_date"] == args.end_date.isoformat()
+            ),
+            None,
+        )
+        if duplicate is not None:
+            # Idempotent write: a repeated submit returns the existing request instead of
+            # creating a second one. A gate in the tool, not a line in the prompt.
+            return {
+                "change": f"no change: {duplicate['id']} already exists for these dates",
+                "request_id": duplicate["id"],
+                "days": duplicate["days"],
+                "status": duplicate["status"],
+                "already_existed": True,
+            }
         days = self.business_days(args.start_date, args.end_date)
         if days == 0:
             raise ToolError("invalid dates: the range contains no business days")
@@ -405,6 +426,15 @@ class HrEnvironment:
     @property
     def tools(self) -> Sequence[Tool]:
         return self._tools
+
+    def briefing(self) -> str:
+        s = self.system
+        me = s.state["employees"].get(s.user, {})
+        return (
+            f"Session context (from the HR system, not from the user): the current user is "
+            f"{me.get('name', 'unknown')}, employee id {s.user}. Today is {s.today.isoformat()} "
+            f"({s.today:%A}). Use this employee id for every tool call."
+        )
 
     def snapshot(self) -> dict[str, Any]:
         return {

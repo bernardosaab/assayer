@@ -48,7 +48,15 @@ def build_judge_prompt(spec: JudgeSpec | None, criteria: list[Criterion]) -> str
     if spec is not None and spec.instructions.strip():
         lines.append(spec.instructions.strip())
     lines.append("Criteria (use these ids as criterion_id):")
-    lines.extend(f"- {c.id}: {c.text}" for c in criteria)
+    lines.extend(
+        f"- {c.id}: {c.text}"
+        + (
+            " (quote the SUBJECT/EXTRACTED OUTPUT, not the source)"
+            if c.quote_from == "subject"
+            else ""
+        )
+        for c in criteria
+    )
     lines.append(f"\nJSON schema:\n{json.dumps(JudgeResponse.model_json_schema())}")
     return "\n".join(lines)
 
@@ -106,5 +114,10 @@ class LlmJudge:
                 continue
 
             return settle_verdict(
-                response, evidence, reasks=reasks, known_criteria=known, min_chars=self._min_chars
+                response,
+                evidence,
+                reasks=reasks,
+                known_criteria=known,
+                min_chars=self._min_chars,
+                sources={c.id: subject for c in criteria if c.quote_from == "subject"},
             )

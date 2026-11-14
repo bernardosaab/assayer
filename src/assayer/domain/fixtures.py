@@ -33,6 +33,13 @@ class Criterion(Model):
 
     id: str
     text: str
+    quote_from: Literal["evidence", "subject"] = Field(
+        default="evidence",
+        description=(
+            "Where a finding's quote must come from. 'subject' forces the judge to quote the "
+            "output being graded, so quoting a correct line of the source proves nothing."
+        ),
+    )
 
 
 class Persona(Model):

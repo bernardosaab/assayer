@@ -25,3 +25,5 @@ including the downsides. New records copy [`template.md`](template.md).
 | [0018](0018-paired-statistics-and-release-gate.md) | Wilson intervals, pass^k, paired McNemar, release gate | accepted |
 | [0019](0019-asyncio-concurrency-and-middleware-order.md) | asyncio concurrency, middleware order, circuit breaker | accepted |
 | [0020](0020-static-html-reports.md) | Static Jinja2 HTML reports on GitHub Pages | accepted |
+| [0021](0021-run-events-observer.md) | Run events through an observer port; live terminal view | accepted |
+| [0022](0022-fixes-from-real-model-runs.md) | Context assembly, derived numbers, stricter judge evidence: fixes found by real models | accepted |

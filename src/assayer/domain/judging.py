@@ -13,6 +13,7 @@ The judge is part of the experiment and is checked like the agent:
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import StrEnum
 from typing import Literal
 
@@ -85,15 +86,21 @@ def settle_verdict(
     reasks: int = 0,
     known_criteria: set[str] | None = None,
     min_chars: int = DEFAULT_MIN_CHARS,
+    sources: Mapping[str, str] | None = None,
 ) -> JudgeVerdict:
-    """Verify each finding's quote against ``evidence`` and derive the final verdict.
+    """Verify each finding's quote and derive the final verdict.
 
-    A finding is kept only if its quote verifies and (when given) it names a known criterion.
+    A finding is kept only if its quote verifies against its criterion's source (``sources``
+    maps criterion id to the text it must quote; default ``evidence``) and, when given, it names
+    a known criterion.
     """
+    sources = sources or {}
     checked = tuple(
         CheckedFinding(
             finding=f,
-            verified=verify_quote(f.quote, evidence, min_chars=min_chars)
+            verified=verify_quote(
+                f.quote, sources.get(f.criterion_id, evidence), min_chars=min_chars
+            )
             and (known_criteria is None or f.criterion_id in known_criteria),
         )
         for f in response.findings

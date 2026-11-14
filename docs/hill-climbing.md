@@ -72,6 +72,40 @@ Replay re-scores v1's stored outputs with the current checks and rubric, with **
 Judgements of identical evidence under an unchanged judge are reused from the cache. If the numbers move
 under replay, the grading moved, not the agent.
 
+## Case study: a real local model (measured)
+
+Measured on 2026-11-14 with Ollama on a laptop (RTX 3070 Laptop GPU): agent `llama3.2:3b`,
+judge `qwen2.5:7b` (a different family, ADR-0012), one repeat per case. Six cases cannot
+resolve small changes, and the diffs say so; read this as a demonstration of the loop, not as
+a benchmark. Reports for these runs are on the demo site.
+
+**`resume_extraction`**
+
+| Step | What changed | Pass rate | What the harness showed |
+|---|---|---|---|
+| v1 | baseline | 0/6 | One failure cluster: every field right except `years_experience`, computed from the *current* role only. |
+| v2 | prompt rule with a worked example | 0/6 | The model now copied the reference year from the prompt: `years_experience = 2026` for every case. A prompt is advice. |
+| v3 | **numbers come from code**: the model extracts `first_job_start_year` (written in the document) and the runner derives the years (`derive` in `eval.yaml`) | 1/6 | All deterministic checks pass. The remaining failures all came from the judge. |
+| v3, regraded | **judge sensor**: `current_role` findings must quote the *output* (`quote_from: subject`), because the 7B judge had "proved" violations by quoting correct lines of the résumé | 5/6 | `assayer replay --rejudge`: zero agent calls; paired diff 4 improved, 0 regressed (McNemar p = 0.125, not significant at n = 6). |
+
+The last regrade changed only the grader, and replay made that visible: the agent's outputs were
+identical, the numbers moved, and the diff attributes every flip to grading. The remaining failure
+is a `no_fabrication` finding that looks like another judge false positive; that is what
+`assayer calibrate` is for, and it needs human labels, not a stronger prompt.
+
+**`hr_assistant`** (8 conversations, about 25 minutes per run on this laptop)
+
+| Step | What changed | Graded | Trajectory sensors |
+|---|---|---|---|
+| v1 | baseline | 0/8 | 2 wrong-year dates, 4 permission errors (guessed employee ids), 2 duplicate requests after "fingers crossed" |
+| v2 | environment `briefing()` gives identity and today's date; `submit_pto_request` made idempotent | 0/7 (+1 judge harness error) | 0, 0 and 0 |
+
+The end-to-end rate did not move, and the diff says so. The tool-level errors it targeted went to zero.
+The remaining failures are the 3B agent acting before confirming and repeating calls, and a 3B
+user simulator that rarely ends a conversation (turn-limit endings). The next steps would be a
+stronger agent model, a stronger simulator, or turning "quote the change, then wait for a yes" into
+a gate in the tool rather than an instruction.
+
 ## 6. Keep it cheap to go round again
 
 * **Safe to re-run.** Same run id resumes; finished work is never redone; a budget caps every run.

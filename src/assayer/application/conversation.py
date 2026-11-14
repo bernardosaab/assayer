@@ -14,6 +14,10 @@ the agent toward the answer key.
 
 from __future__ import annotations
 
+import json
+from collections.abc import Callable
+
+from assayer.application.events import TurnEvent
 from assayer.domain.fixtures import ConversationFixture
 from assayer.domain.messages import Message
 from assayer.domain.outputs import TerminationReason, ToolEvent, Transcript
@@ -29,19 +33,38 @@ async def run_conversation(
     agent_llm: ChatModel,
     simulator_llm: ChatModel,
     system_prompt: str,
+    on_turn: Callable[[TurnEvent], None] | None = None,
 ) -> Transcript:
     scenario = fixture.scenario
-    history: list[Message] = [Message.system(system_prompt), Message.user(scenario.opening_message)]
+    briefing = environment.briefing().strip()
+    system = "\n\n".join(p for p in (system_prompt.rstrip(), briefing) if p)
+    history: list[Message] = [Message.system(system), Message.user(scenario.opening_message)]
     events: list[ToolEvent] = []
     last_user = scenario.opening_message
     termination = TerminationReason.TURN_LIMIT
     agent_error: str | None = None
     turn = 0
+    emit = on_turn or (lambda _event: None)
+    emit(TurnEvent(fixture.id, 0, "user", scenario.opening_message))
 
     for turn in range(1, scenario.max_turns + 1):
         step = await agent.respond(history, environment, agent_llm, turn=turn)
         history.extend(step.messages)
         events.extend(step.tool_events)
+        for tool_event in step.tool_events:
+            call = tool_event.call
+            emit(
+                TurnEvent(
+                    fixture.id,
+                    turn,
+                    "tool",
+                    f"{call.name}({json.dumps(call.arguments, default=str)})",
+                    error=tool_event.error,
+                )
+            )
+        reply = next((m.content for m in reversed(step.messages) if m.role == "assistant"), None)
+        if reply:
+            emit(TurnEvent(fixture.id, turn, "agent", reply))
         if step.error is not None:
             termination, agent_error = TerminationReason.AGENT_TOOL_LOOP, step.error
             break
@@ -66,6 +89,7 @@ async def run_conversation(
             break
         last_user = sim.message
         history.append(Message.user(sim.message))
+        emit(TurnEvent(fixture.id, turn, "user", sim.message))
 
     return Transcript(
         messages=tuple(history),

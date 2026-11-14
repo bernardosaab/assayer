@@ -57,5 +57,6 @@ def task_harness(spec: EvalSpec, raw: ModelProvider, ledger: CostLedger) -> Harn
             spec.task.runner,
             system_prompt=spec.task.system_prompt,
             output_schema=spec.task.output_schema,
+            **spec.task.args,
         ),
     )

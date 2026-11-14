@@ -50,6 +50,15 @@
   .reasons { margin: 6px 0; padding-left: 18px; }
   .muted { color: var(--muted); } .ok { color: var(--pass); } .bad { color: var(--fail); }
   .hbar { height: 8px; background: var(--accent); border-radius: 4px; opacity: .7; }
+  ol.timeline { list-style: none; padding: 0; margin: 8px 0; display: flex; flex-direction: column; gap: 6px; }
+  ol.timeline li { max-width: 85%; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); }
+  ol.timeline .tl-who { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  ol.timeline .tl-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+  ol.timeline .tl-user { align-self: flex-start; background: var(--code); }
+  ol.timeline .tl-agent { align-self: flex-end; border-color: var(--accent); }
+  ol.timeline .tl-tool { align-self: center; max-width: 92%; font-size: 13px; border-style: dashed; }
+  ol.timeline .tl-error { border-color: var(--fail); background: var(--fail-bg); }
+  ol.timeline .tl-res { margin-top: 4px; font-size: 12px; overflow-wrap: anywhere; }
   footer { margin-top: 40px; color: var(--muted); font-size: 12px; }
 </style>
 </head>
@@ -93,9 +102,9 @@
     <dl class="meta">
       <dt>Run</dt><dd><code>a</code></dd>
       <dt>Git</dt><dd><code>000000000000</code></dd>
-      <dt>Prompt</dt><dd><code>ae8584b788fd303f</code></dd>
-      <dt>Judge</dt><dd><code>a4f48589bd56dab1</code></dd>
-      <dt>Grader</dt><dd><code>974dab0e48716053</code></dd>
+      <dt>Prompt</dt><dd><code>3423f0a99896d3a5</code></dd>
+      <dt>Judge</dt><dd><code>38aa5f34d6c8629a</code></dd>
+      <dt>Grader</dt><dd><code>1f56285f46dc9877</code></dd>
       <dt>Agent model</dt><dd><code>fake/agent</code></dd>
     </dl>
   </div>
@@ -104,9 +113,9 @@
     <dl class="meta">
       <dt>Run</dt><dd><code>b</code></dd>
       <dt>Git</dt><dd><code>000000000000</code></dd>
-      <dt>Prompt</dt><dd><code>ae8584b788fd303f</code></dd>
-      <dt>Judge</dt><dd><code>a4f48589bd56dab1</code></dd>
-      <dt>Grader</dt><dd><code>974dab0e48716053</code></dd>
+      <dt>Prompt</dt><dd><code>3423f0a99896d3a5</code></dd>
+      <dt>Judge</dt><dd><code>38aa5f34d6c8629a</code></dd>
+      <dt>Grader</dt><dd><code>1f56285f46dc9877</code></dd>
       <dt>Agent model</dt><dd><code>fake/agent</code></dd>
     </dl>
   </div>

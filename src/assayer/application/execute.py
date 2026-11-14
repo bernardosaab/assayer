@@ -16,10 +16,20 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from dataclasses import dataclass, field
 from typing import Protocol
 
 from assayer.application.conversation import run_conversation
+from assayer.application.events import (
+    AttemptFinished,
+    AttemptStarted,
+    Halted,
+    NullObserver,
+    RunObserver,
+    StageStarted,
+    safe_notify,
+)
 from assayer.application.harness import Harness
 from assayer.domain.attempt import Attempt, AttemptStatus
 from assayer.domain.errors import BudgetExceeded, ConfigError, ErrorKind, HarnessError
@@ -54,11 +64,13 @@ class Executor:
         *,
         concurrency: int = 4,
         circuit_breaker: int = 5,
+        observer: RunObserver | None = None,
     ) -> None:
         self._store = store
         self._harness = harness
         self._concurrency = concurrency
         self._breaker = circuit_breaker
+        self._observer: RunObserver = observer or NullObserver()
 
     async def execute(self, run_id: str) -> ExecutionReport:
         cases = {case.id: case for case in await self._store.load_cases(run_id)}
@@ -69,6 +81,7 @@ class Executor:
         halt = asyncio.Event()
         semaphore = asyncio.Semaphore(self._concurrency)
         consecutive_errors = 0
+        safe_notify(self._observer, StageStarted("execute", len(pending)))
 
         async def one(attempt: Attempt) -> None:
             nonlocal consecutive_errors
@@ -81,7 +94,19 @@ class Executor:
                 if claimed is None:
                     return
                 report.executed += 1
+                safe_notify(self._observer, AttemptStarted(claimed.case_id, claimed.repeat))
+                started = time.perf_counter()
                 outcome = await self._attempt(claimed, cases[claimed.case_id])
+                safe_notify(
+                    self._observer,
+                    AttemptFinished(
+                        claimed.case_id,
+                        claimed.repeat,
+                        ok=outcome is None,
+                        error=None if outcome is None else f"{outcome.kind.value}: {outcome}",
+                        duration_ms=(time.perf_counter() - started) * 1000,
+                    ),
+                )
                 if outcome is None:
                     report.succeeded += 1
                     consecutive_errors = 0
@@ -105,6 +130,8 @@ class Executor:
         async with asyncio.TaskGroup() as group:
             for attempt in pending:
                 group.create_task(one(attempt))
+        if report.halted_reason:
+            safe_notify(self._observer, Halted(report.halted_reason))
 
         if report.halted_reason and "budget" in report.halted_reason:
             # Attempts released after the budget halt are counted for the summary.
@@ -175,4 +202,5 @@ class Executor:
             agent_llm=agent_llm,
             simulator_llm=sim_llm,
             system_prompt=h.spec.agent.system_prompt,
+            on_turn=lambda event: safe_notify(self._observer, event),
         )

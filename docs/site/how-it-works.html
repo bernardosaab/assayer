@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How Assayer works</title>
+<style>
+  :root { --bg:#f7f7f5; --surface:#fff; --text:#1d1d1f; --muted:#6b6b70; --border:#d9d9d4;
+          --accent:#2f5bd3; --pass:#1f7a4d; --fail:#b3261e; --err:#8a5a00; --gate:#6d3fc0; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#141416; --surface:#1c1c1f; --text:#ececee; --muted:#9a9aa2; --border:#38383f;
+            --accent:#8fa8ff; --pass:#5fcf95; --fail:#ff8a80; --err:#f0c26b; --gate:#c5a3ff; }
+  }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { margin: 0 0 4px; } .sub { color: var(--muted); margin: 0 0 28px; }
+  h2 { margin-top: 40px; font-size: 20px; }
+  a { color: var(--accent); }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { fill: var(--text); font: 13px system-ui, sans-serif; }
+  svg .small { font-size: 11px; fill: var(--muted); }
+  svg .box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+  svg .gate { fill: var(--surface); stroke: var(--gate); stroke-width: 2; }
+  svg .model { fill: var(--surface); stroke: var(--accent); stroke-width: 2; stroke-dasharray: 5 3; }
+  svg .arrow { stroke: var(--muted); stroke-width: 1.6; fill: none; marker-end: url(#head); }
+  svg .stop { stroke: var(--fail); stroke-width: 1.4; fill: none; stroke-dasharray: 4 3; marker-end: url(#headr); }
+  svg .pass { fill: var(--pass); } svg .fail { fill: var(--fail); } svg .err { fill: var(--err); }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+  .legend span::before { content: ""; display: inline-block; width: 14px; height: 10px; margin-right: 6px; vertical-align: middle; border-radius: 3px; }
+  .lg-gate::before { border: 2px solid var(--gate); } .lg-model::before { border: 2px dashed var(--accent); }
+  .lg-stop::before { border-top: 2px dashed var(--fail); height: 0 !important; }
+  .cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 16px; } .card p { margin: 0; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+<h1>How Assayer works</h1>
+<p class="sub">One attempt of one case, from claim to grade. The model only proposes; every box with a
+purple border is a gate in code it cannot talk its way past. <a href="index.html">Back to the reports</a></p>
+
+<svg viewBox="0 0 960 470" role="img" aria-label="Pipeline of one attempt">
+  <defs>
+    <marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8a8a90"/></marker>
+    <marker id="headr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#b3261e"/></marker>
+  </defs>
+
+  <!-- row 1: execution -->
+  <rect class="box" x="10" y="20" width="130" height="64" rx="10"/>
+  <text x="75" y="47" text-anchor="middle">Fixture</text>
+  <text x="75" y="66" text-anchor="middle" class="small">persona + scenario</text>
+
+  <rect class="gate" x="180" y="20" width="130" height="64" rx="10"/>
+  <text x="245" y="47" text-anchor="middle">Claim attempt</text>
+  <text x="245" y="66" text-anchor="middle" class="small">row written first</text>
+
+  <rect class="gate" x="350" y="20" width="130" height="64" rx="10"/>
+  <text x="415" y="47" text-anchor="middle">Reserve cost</text>
+  <text x="415" y="66" text-anchor="middle" class="small">worst case ≤ budget?</text>
+
+  <rect class="model" x="520" y="20" width="130" height="64" rx="10"/>
+  <text x="585" y="47" text-anchor="middle">Agent ⇄ tools</text>
+  <text x="585" y="66" text-anchor="middle" class="small">simulated user turns</text>
+
+  <rect class="gate" x="690" y="20" width="130" height="64" rx="10"/>
+  <text x="755" y="47" text-anchor="middle">Settle + store</text>
+  <text x="755" y="66" text-anchor="middle" class="small">real cost, output</text>
+
+  <path class="arrow" d="M140,52 L178,52"/>
+  <path class="arrow" d="M310,52 L348,52"/>
+  <path class="arrow" d="M480,52 L518,52"/>
+  <path class="arrow" d="M650,52 L688,52"/>
+
+  <!-- stop paths -->
+  <path class="stop" d="M415,84 L415,140"/>
+  <text x="405" y="125" class="small" text-anchor="end">over budget → refused before the call</text>
+  <path class="stop" d="M585,84 L585,165"/>
+  <text x="575" y="150" class="small" text-anchor="end">step cap · turn limit · loop guard</text>
+
+  <!-- environment -->
+  <rect class="box" x="520" y="180" width="300" height="60" rx="10"/>
+  <text x="670" y="205" text-anchor="middle">System of record (environment)</text>
+  <text x="670" y="224" text-anchor="middle" class="small">permissions in code · writes held for approval · idempotent</text>
+  <path class="arrow" d="M640,84 C700,120 700,150 690,178"/>
+
+  <!-- row 2: grading -->
+  <rect class="gate" x="10" y="300" width="170" height="70" rx="10"/>
+  <text x="95" y="327" text-anchor="middle">Sensors (checks)</text>
+  <text x="95" y="346" text-anchor="middle" class="small">gold · traps · tools · end state</text>
+
+  <rect class="model" x="220" y="300" width="170" height="70" rx="10"/>
+  <text x="305" y="327" text-anchor="middle">LLM judge</text>
+  <text x="305" y="346" text-anchor="middle" class="small">reasons first, must quote</text>
+
+  <rect class="gate" x="430" y="300" width="170" height="70" rx="10"/>
+  <text x="515" y="327" text-anchor="middle">Verify quotes</text>
+  <text x="515" y="346" text-anchor="middle" class="small">unquotable findings dropped</text>
+
+  <rect class="gate" x="640" y="300" width="130" height="70" rx="10"/>
+  <text x="705" y="327" text-anchor="middle">Grade</text>
+  <text x="705" y="346" text-anchor="middle" class="small">derived in code</text>
+
+  <path class="arrow" d="M820,52 L900,52 L900,275 L95,275 L95,298"/>
+  <text x="890" y="268" class="small" text-anchor="end">stored output</text>
+  <path class="arrow" d="M180,335 L218,335"/>
+  <path class="arrow" d="M390,335 L428,335"/>
+  <path class="arrow" d="M600,335 L638,335"/>
+
+  <!-- outcomes -->
+  <rect class="pass" x="820" y="292" width="120" height="24" rx="12"/>
+  <text x="880" y="309" text-anchor="middle" style="fill:#fff">pass</text>
+  <rect class="fail" x="820" y="323" width="120" height="24" rx="12"/>
+  <text x="880" y="340" text-anchor="middle" style="fill:#fff">fail</text>
+  <rect class="err" x="820" y="354" width="120" height="24" rx="12"/>
+  <text x="880" y="371" text-anchor="middle" style="fill:#fff">harness error</text>
+  <path class="arrow" d="M770,335 L816,335"/>
+  <text x="820" y="398" class="small">harness errors: excluded</text>
+  <text x="820" y="413" class="small">from every rate, re-run</text>
+
+  <text x="10" y="450" class="small">Crash anywhere above: on resume, unspent attempts are redone; an attempt that already spent money is shown as interrupted, never silently re-spent.</text>
+</svg>
+<div class="legend"><span class="lg-gate">gate in code</span><span class="lg-model">model (proposes)</span><span class="lg-stop">stop path</span></div>
+
+<h2>Then the loop</h2>
+<div class="cards">
+  <div class="card"><h3>1. Run with repeats</h3><p>pass^k (every repeat passes) is reliability; pass@k is capability. A gap between them is its own diagnosis.</p></div>
+  <div class="card"><h3>2. Read failures</h3><p>Failure causes are counted by check and rubric line; the report shows each transcript, tool call and quoted finding.</p></div>
+  <div class="card"><h3>3. Fix either side</h3><p>The agent (prompt, tool, data) or the harness (check, rubric, scenario, gold). A production failure becomes a scenario file.</p></div>
+  <div class="card"><h3>4. Compare paired</h3><p>Same cases, discordant pairs, exact McNemar, the flipped cases, and the smallest change the sample can resolve.</p></div>
+  <div class="card"><h3>5. Replay to attribute</h3><p>Re-score stored outputs with current graders and zero agent calls: did the agent change, or the grading?</p></div>
+</div>
+</main>
+</body>
+</html>

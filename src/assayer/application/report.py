@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Protocol
 
 from pydantic import Field
@@ -20,6 +21,16 @@ from assayer.domain.outputs import Transcript, parse_output
 from assayer.domain.run import RunMeta, RunStatus
 
 
+class TimelineItem(Model):
+    """One visible step of a conversation, for the report's timeline."""
+
+    turn: int
+    actor: str  # "user" | "agent" | "tool"
+    text: str
+    result: str | None = None
+    error: str | None = None
+
+
 class AttemptView(Model):
     attempt: Attempt
     grade: Grade
@@ -31,6 +42,8 @@ class AttemptView(Model):
     turns: int | None = None
     termination: str | None = None
     tool_calls: int | None = None
+    timeline: list[TimelineItem] = Field(default_factory=list)
+    writes: list[str] = Field(default_factory=list)
 
 
 class RunReport(Model):
@@ -53,6 +66,43 @@ class DiffReport(Model):
 class ReportRenderer(Protocol):
     def render_run(self, report: RunReport) -> str: ...
     def render_diff(self, report: DiffReport) -> str: ...
+
+
+def _short(value: object, limit: int = 400) -> str:
+    text = value if isinstance(value, str) else json.dumps(value, default=str, ensure_ascii=False)
+    return text if len(text) <= limit else text[: limit - 3] + "..."
+
+
+def build_timeline(transcript: Transcript) -> list[TimelineItem]:
+    """Interleave user lines, agent replies, and each tool call with its result or error."""
+    events = {e.call.id: e for e in transcript.tool_events}
+    items: list[TimelineItem] = []
+    turn = 0
+    for message in transcript.messages:
+        if message.role == "user" and message.content:
+            items.append(TimelineItem(turn=turn, actor="user", text=message.content))
+        elif message.role == "assistant":
+            for call in message.tool_calls:
+                event = events.get(call.id)
+                turn = event.turn if event else turn
+                items.append(
+                    TimelineItem(
+                        turn=turn,
+                        actor="tool",
+                        text=f"{call.name}({_short(call.arguments, 200)})",
+                        result=None if event is None or event.error else _short(event.result),
+                        error=event.error if event else None,
+                    )
+                )
+            if message.content:
+                items.append(TimelineItem(turn=turn, actor="agent", text=message.content))
+                turn += 1
+    return items
+
+
+def _writes(state: dict[str, object]) -> list[str]:
+    writes = state.get("writes")
+    return [_short(w, 300) for w in writes] if isinstance(writes, list) else []
 
 
 def _kind(case: TaskFixture | ConversationFixture | None) -> str:
@@ -88,6 +138,8 @@ async def build_run_report(
                     "turns": output.turns,
                     "termination": output.termination.value,
                     "tool_calls": len(output.tool_events),
+                    "timeline": build_timeline(output),
+                    "writes": _writes(output.final_state),
                 }
             view = view.model_copy(update=update)
         views.append(view)
