@@ -12,6 +12,7 @@ from assayer.adapters.store.sqlite_store import SqliteStore
 from assayer.adapters.system.clock import FixedClock
 from assayer.adapters.system.git import FakeVcs
 from assayer.application.compare import compare
+from assayer.application.queries import grading_view
 from assayer.application.replay import ReplayRun
 from assayer.application.report import DiffReport, build_run_report
 from assayer.application.run_eval import RunEval, RunOptions
@@ -110,8 +111,9 @@ async def test_run_report_matches_golden(store: SqliteStore, update_golden: bool
     spec = load_spec("resume_extraction")
     meta = await store.get_run("golden")
     assert meta is not None
-    version = grader_version(spec, spec.judge_version("fake/judge"))
-    report = await build_run_report(store, meta, version, generated_by="assayer (test)")
+    view = await grading_view(store, meta, spec)
+    assert view.current
+    report = await build_run_report(store, meta, view, generated_by="assayer (test)")
     html = JinjaReportRenderer().render_run(report)
     assert "carlos-ruiz" in html
     assert "dropped (quote not in evidence)" in html

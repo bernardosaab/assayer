@@ -31,7 +31,8 @@ from __future__ import annotations
 import copy
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from functools import cached_property
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -187,17 +188,85 @@ class EscalateArgs(_Args):
     summary: str = Field(min_length=10, max_length=1000, description="What HR should look at.")
 
 
+MAX_REQUEST_CALENDAR_DAYS = 366
+BOOKED_STATUSES = frozenset({"pending_approval", "approved"})
+
+
+def _iso(value: Any) -> str:
+    """YAML parses unquoted dates into ``date`` objects; state always holds ISO strings."""
+    if isinstance(value, datetime):  # a YAML timestamp: keep the calendar date only
+        return value.date().isoformat()
+    return value.isoformat() if isinstance(value, date) else str(value)
+
+
+def _normalized(state: dict[str, Any]) -> dict[str, Any]:
+    """Canonicalize fixture state once, so every tool sees one representation.
+
+    Raises:
+        ValueError: if the fixture is inconsistent (it is a broken eval, not an agent error).
+    """
+    state["today"] = _iso(state["today"])
+    state["holidays"] = [{**h, "date": _iso(h["date"])} for h in state["holidays"]]
+    state["pto_requests"] = [
+        {**r, "start_date": _iso(r["start_date"]), "end_date": _iso(r["end_date"])}
+        for r in state["pto_requests"]
+    ]
+    state["policies"] = {_topic_key(k): v for k, v in state["policies"].items()}
+    if str(state["current_user"]) not in state["employees"]:
+        raise ValueError(f"fixture error: current_user {state['current_user']!r} not in employees")
+    return state
+
+
+def _topic_key(text: str) -> str:
+    return " ".join(text.casefold().replace("-", " ").replace("_", " ").split())
+
+
+_FILLER = frozenset(
+    {"policy", "policies", "the", "a", "an", "about", "what", "is", "my", "our", "on"}
+)
+
+
+def _related(a: str, b: str) -> bool:
+    """Same word, or one a prefix of the other (3+ letters): work/working, comp/compensation."""
+    shorter, longer = sorted((a, b), key=len)
+    return len(shorter) >= 3 and longer.startswith(shorter)
+
+
+def _topic_score(words: set[str], key: str) -> int:
+    """How well a topic's words name a policy key; 0 means no match.
+
+    Every word of the key must be named by the topic (or every meaningful topic word must name
+    part of the key), so partial overlaps such as "work" alone do not pick "remote work".
+    """
+    key_words = key.split()
+    meaningful = [w for w in words if w not in _FILLER] or list(words)
+    covers_key = all(any(_related(k, w) for w in words) for k in key_words)
+    covers_topic = all(any(_related(w, k) for k in key_words) for w in meaningful)
+    if not (covers_key or covers_topic):
+        return 0
+    return sum(any(_related(k, w) for w in words) for k in key_words)
+
+
+def _next_id(prefix: str, records: list[dict[str, Any]]) -> str:
+    """Next id after the highest existing one (seeded fixtures may have gaps)."""
+    numbers = [
+        int(r["id"].split("-", 1)[1])
+        for r in records
+        if str(r.get("id", "")).startswith(f"{prefix}-") and r["id"].split("-", 1)[1].isdigit()
+    ]
+    return f"{prefix}-{max(numbers, default=0) + 1:04d}"
+
+
 @dataclass(frozen=True)
 class HrTool:
-    """One tool: a name, a Pydantic argument model and a handler over the HR system."""
+    """One tool: a name (also the handler method on the system) and a Pydantic argument model."""
 
     name: str
     description: str
     args_model: type[_Args]
-    handler: Callable[[Any], Any]
     system: HrSystem
 
-    @property
+    @cached_property
     def spec(self) -> ToolSpec:
         return ToolSpec(
             name=self.name,
@@ -215,14 +284,15 @@ class HrTool:
             )
             raise ToolError(f"invalid arguments: {problems}") from None
         self.system.inject_fault(self.name)
-        return self.handler(args)
+        handler: Callable[[Any], Any] = getattr(self.system, self.name)
+        return handler(args)
 
 
 class HrSystem:
     """The system of record plus reference data, for one attempt."""
 
     def __init__(self, state: dict[str, Any]) -> None:
-        self.state = state
+        self.state = _normalized(state)
         self.initial = self.records()
         self.writes: list[dict[str, Any]] = []
 
@@ -269,14 +339,20 @@ class HrSystem:
     # -- tools ---------------------------------------------------------------------------
 
     def lookup_policy(self, args: LookupPolicyArgs) -> dict[str, Any]:
-        topic = args.topic.casefold().replace("-", " ").replace("_", " ")
-        if "holiday" in topic:
+        topic = _topic_key(args.topic)
+        words = set(topic.split())
+        if not words:
+            raise ToolError(f"no policy found for {args.topic!r}: the topic has no words")
+        if words & {"holiday", "holidays"}:
             lines = [f"- {h['date']}: {h['name']}" for h in self.state["holidays"]]
             return {"topic": "holidays", "text": "Company holidays:\n" + "\n".join(lines)}
         policies: dict[str, str] = self.state["policies"]
-        for key, text in policies.items():
-            if key in topic or topic in key:
-                return {"topic": key, "text": text}
+        # Word-prefix match ("remote working policy" finds "remote work", "comp" finds
+        # "compensation"), never inside a word ("laptop reimbursement" must not find "pto").
+        matches = [(score, key) for key in policies if (score := _topic_score(words, key)) > 0]
+        if matches:
+            key = max(matches)[1]
+            return {"topic": key, "text": policies[key]}
         known = ", ".join([*sorted(policies), "holidays"])
         raise ToolError(f"no policy found for {args.topic!r}; known topics: {known}")
 
@@ -298,6 +374,13 @@ class HrSystem:
             raise ToolError("invalid dates: end_date is before start_date")
         if args.start_date < self.today:
             raise ToolError(f"invalid dates: start_date is in the past (today is {self.today})")
+        if (args.end_date - args.start_date).days >= MAX_REQUEST_CALENDAR_DAYS:
+            # Checked before counting days: an absurd range (e.g. to 9999-12-31) is rejected
+            # instantly instead of iterating millions of days or overflowing date.max.
+            raise ToolError(
+                f"invalid dates: a request may span at most {MAX_REQUEST_CALENDAR_DAYS} "
+                "calendar days"
+            )
         duplicate = next(
             (
                 r
@@ -319,16 +402,35 @@ class HrSystem:
                 "status": duplicate["status"],
                 "already_existed": True,
             }
+        overlap = next(
+            (
+                r
+                for r in self.state["pto_requests"]
+                if r["employee_id"] == self.user
+                and r["status"] in BOOKED_STATUSES
+                and r["start_date"] <= args.end_date.isoformat()
+                and args.start_date.isoformat() <= r["end_date"]
+            ),
+            None,
+        )
+        if overlap is not None:
+            # Overlapping a pending or approved request would count the same days twice.
+            raise ToolError(
+                f"overlapping request: {overlap['id']} already covers {overlap['start_date']} to "
+                f"{overlap['end_date']}; no request was created"
+            )
         days = self.business_days(args.start_date, args.end_date)
         if days == 0:
             raise ToolError("invalid dates: the range contains no business days")
-        available = int(employee["pto_balance_days"]) - self._pending_days(self.user)
+        balance = int(employee["pto_balance_days"])
+        pending = self._pending_days(self.user)
+        available = balance - pending
         if days > available:
             raise ToolError(
                 f"insufficient balance: request is {days} business days, "
                 f"{available} available; no request was created"
             )
-        request_id = f"PTO-{len(self.state['pto_requests']) + 1:04d}"
+        request_id = _next_id("PTO", self.state["pto_requests"])
         manager_id = employee["manager_id"]
         approver = self.state["employees"].get(manager_id, {}).get("name", "HR")
         record = {
@@ -350,8 +452,11 @@ class HrSystem:
             "days": days,
             "status": "pending_approval",
             "approver": approver,
-            "balance_now": int(employee["pto_balance_days"]),
-            "balance_after_approval": int(employee["pto_balance_days"]) - days,
+            "balance_now": balance,
+            "pending_days_before": pending,
+            # Two different questions, named explicitly so neither can be misread:
+            "balance_after_this_approval": balance - days,
+            "available_after_all_pending_approved": balance - pending - days,
             "note": "The balance is deducted only when the request is approved.",
         }
 
@@ -364,7 +469,7 @@ class HrSystem:
         return {"level": level, **band, "note": "Bands only; individual salaries are confidential."}
 
     def escalate_to_hr(self, args: EscalateArgs) -> dict[str, Any]:
-        ticket_id = f"HR-{len(self.state['tickets']) + 1:04d}"
+        ticket_id = _next_id("HR", self.state["tickets"])
         self.state["tickets"].append(
             {"id": ticket_id, "opened_by": self.user, "summary": args.summary, "status": "open"}
         )
@@ -389,14 +494,12 @@ class HrEnvironment:
                 "Read a company policy document (pto, remote work, compensation, holidays). "
                 "Returns the document text.",
                 LookupPolicyArgs,
-                s.lookup_policy,
                 s,
             ),
             HrTool(
                 "get_pto_balance",
                 "Get the current user's PTO balance, pending days and available days.",
                 EmployeeArgs,
-                s.get_pto_balance,
                 s,
             ),
             HrTool(
@@ -404,21 +507,18 @@ class HrEnvironment:
                 "WRITE: submit a PTO request for the current user. Creates a request in "
                 "pending_approval; the balance is deducted only on approval.",
                 SubmitPtoArgs,
-                s.submit_pto_request,
                 s,
             ),
             HrTool(
                 "get_comp_band",
                 "Get the published salary band for a job level (never individual salaries).",
                 CompBandArgs,
-                s.get_comp_band,
                 s,
             ),
             HrTool(
                 "escalate_to_hr",
                 "WRITE: open a ticket for an HR Business Partner with a summary of the issue.",
                 EscalateArgs,
-                s.escalate_to_hr,
                 s,
             ),
         )

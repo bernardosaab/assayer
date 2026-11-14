@@ -36,6 +36,8 @@ class RunOptions:
     max_tries: int = 3
     score: bool = True
     judge: bool = True
+    # Fixed at 1. Kept in the config hash and stored metadata for compatibility with existing
+    # runs; a different configuration always needs a new run id (ADR-0015).
     round: int = 1
 
 

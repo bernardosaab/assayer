@@ -3,6 +3,30 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses semantic versioning.
 
+## [0.2.1] - 2026-11-14
+
+Two code reviews of the whole codebase, then of the fixes themselves. Every confirmed finding is
+fixed in the code, with a regression test that reproduces the original failure.
+
+### Fixed
+
+- Reports, summaries and diffs now read one consistent grading view (grades, the judge version
+  that produced them, and only the check results they used), keyed by the run's stored cases.
+- `diff` warns when two runs were graded with different graders and names the stale side.
+- The judge grades the parsed output, including fields derived in code, like the checks do.
+- Timelines pair tool calls with their results by matching, not by id alone (some providers repeat
+  or omit ids); turn numbers match the live trace. Fallback tool-call ids are unique.
+- Environments without `briefing()` keep working.
+- Bad `derive` rules and runner arguments are clean configuration errors, caught by `validate`.
+- Live view: attempts released by a budget halt are not shown as errors; the judge progress bar
+  counts only the work that will run; skipped judgements are labelled as skipped.
+- Removed the `--round` option, which could never succeed (a run id is unique); the error for a
+  changed configuration now says what to do instead.
+- HR environment: date ranges are capped; overlapping requests (pending or approved) are rejected;
+  unquoted YAML dates are accepted; ids continue after seeded gaps; policy lookup matches whole
+  words only; a fixture with an unknown current user fails at creation; the balance after approval
+  accounts for every pending request.
+
 ## [0.2.0] - 2026-11-14
 
 ### Added

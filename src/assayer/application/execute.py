@@ -93,10 +93,9 @@ class Executor:
                 )
                 if claimed is None:
                     return
-                report.executed += 1
                 safe_notify(self._observer, AttemptStarted(claimed.case_id, claimed.repeat))
                 started = time.perf_counter()
-                outcome = await self._attempt(claimed, cases[claimed.case_id])
+                outcome, released = await self._attempt(claimed, cases[claimed.case_id])
                 safe_notify(
                     self._observer,
                     AttemptFinished(
@@ -105,21 +104,26 @@ class Executor:
                         ok=outcome is None,
                         error=None if outcome is None else f"{outcome.kind.value}: {outcome}",
                         duration_ms=(time.perf_counter() - started) * 1000,
+                        released=released,
                     ),
                 )
-                if outcome is None:
-                    report.succeeded += 1
-                    consecutive_errors = 0
-                    return
                 if isinstance(outcome, BudgetExceeded):
                     report.halted_reason = f"budget exhausted ({outcome})"
                     halt.set()
+                if released:
+                    return  # handed back untouched: it will run on resume, it did not "execute"
+                report.executed += 1
+                if outcome is None:
+                    report.succeeded += 1
+                    consecutive_errors = 0
                     return
                 report.harness_errors += 1
                 report.errors_by_kind[outcome.kind.value] = (
                     report.errors_by_kind.get(outcome.kind.value, 0) + 1
                 )
-                consecutive_errors += 1
+                if not isinstance(outcome, BudgetExceeded):
+                    # A budget halt is not an outage: it must not trip the circuit breaker.
+                    consecutive_errors += 1
                 if consecutive_errors >= self._breaker and not halt.is_set():
                     report.halted_reason = (
                         f"circuit breaker: {consecutive_errors} consecutive harness errors "
@@ -142,8 +146,12 @@ class Executor:
 
     async def _attempt(
         self, attempt: Attempt, case: TaskFixture | ConversationFixture
-    ) -> HarnessError | None:
-        """Run one claimed attempt and record its result. Returns the harness error, if any."""
+    ) -> tuple[HarnessError | None, bool]:
+        """Run one claimed attempt and record its result.
+
+        Returns the harness error (if any) and whether the attempt was released back to pending
+        untouched (budget refused its very first call).
+        """
         h = self._harness
         agent_llm = h.agent.bind(
             h.context(Purpose.AGENT, attempt.run_id, attempt.case_id, attempt.attempt_id)
@@ -161,19 +169,19 @@ class Executor:
             spent_calls = agent_llm.calls_made + (sim_llm.calls_made if sim_llm else 0)
             if spent_calls == 0:
                 await self._store.release_attempt(attempt.attempt_id)
-            else:
-                await self._store.fail_attempt(attempt.attempt_id, exc.kind, str(exc))
-            return exc
+                return exc, True
+            await self._store.fail_attempt(attempt.attempt_id, exc.kind, str(exc))
+            return exc, False
         except HarnessError as exc:
             await self._store.fail_attempt(attempt.attempt_id, exc.kind, str(exc))
-            return exc
+            return exc, False
         except Exception as exc:  # a bug in SUT or harness code: visible, never silent
             log.exception("attempt %s crashed", attempt.attempt_id)
             error = HarnessError(f"{type(exc).__name__}: {exc}", kind=ErrorKind.INTERNAL)
             await self._store.fail_attempt(attempt.attempt_id, error.kind, str(error))
-            return error
+            return error, False
         await self._store.finish_attempt(attempt.attempt_id, output.model_dump(mode="json"))
-        return None
+        return None, False
 
     async def _run_sut(
         self,

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from assayer.application.events import RunObserver
 from assayer.application.harness import Harness
 from assayer.application.run_eval import RunStore
 from assayer.application.scoring import ScoreReport, ScoreRun, grader_version
@@ -32,10 +33,18 @@ class ReplayResult:
 
 
 class ReplayRun:
-    def __init__(self, store: RunStore, harness: Harness, *, clock: Clock) -> None:
+    def __init__(
+        self,
+        store: RunStore,
+        harness: Harness,
+        *,
+        clock: Clock,
+        observer: RunObserver | None = None,
+    ) -> None:
         self._store = store
         self._harness = harness
         self._clock = clock
+        self._observer = observer
 
     async def __call__(
         self, source_run_id: str, target_run_id: str, *, rejudge: bool, budget: Money
@@ -66,6 +75,8 @@ class ReplayRun:
         )
         await self._store.create_or_load_run(meta, await self._store.load_cases(source_run_id))
         copied = await self._store.copy_attempts(source_run_id, target_run_id)
-        scoring = await ScoreRun(self._store, harness, judge_cache_only=not rejudge)(target_run_id)
+        scoring = await ScoreRun(
+            self._store, harness, judge_cache_only=not rejudge, observer=self._observer
+        )(target_run_id)
         await self._store.set_run_status(target_run_id, RunStatus.COMPLETE)
         return ReplayResult(meta=meta, copied=copied, scoring=scoring)

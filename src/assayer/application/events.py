@@ -33,6 +33,7 @@ class AttemptFinished:
     ok: bool
     error: str | None = None
     duration_ms: float | None = None
+    released: bool = False  # handed back to pending untouched (budget); will run on resume
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,7 @@ class Judged:
     reasks: int
     dropped: int
     cached: bool
+    skipped: bool = False  # not in the replay cache and judge calls were not allowed
 
 
 @dataclass(frozen=True)

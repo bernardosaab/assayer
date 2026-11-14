@@ -42,3 +42,10 @@ remember to bump a version, and replay (ADR-0017) can tell grading changes from 
 Pydantic and `validate` catch most but not all. Any edit, even whitespace in a prompt, produces a
 new version, which starts a new configuration for a run id. Logic beyond the built-in runners and
 checks still needs Python.
+
+**Hashing policy (amended 2026-11-14).** Hashes include fields at their default values. A changed
+default changes behaviour, so it must change the version. The consequence is that adding a field
+to a versioned model is also a version change. Excluding defaults was tried and reverted: it hid
+default changes and made runs created before the change impossible to resume. Old runs keep their
+stored versions; `summary`, `report` and `diff` read them as originally graded, and `diff` warns
+when two runs were graded with different graders.

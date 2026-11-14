@@ -222,3 +222,139 @@ def test_snapshot_shape_and_isolation() -> None:
     invoke(env, "escalate_to_hr", summary="Something worth a ticket.")
     assert snap["final"]["tickets"] == []  # earlier snapshots are not aliased
     assert make_env().snapshot()["final"]["tickets"] == []  # fresh world per attempt
+
+
+# --- regressions from the code review (each reproduces the reported failure) ---------------
+
+
+def test_absurd_date_range_is_a_tool_error_not_a_crash() -> None:
+    env = make_env()
+    with pytest.raises(ToolError, match="at most 366"):
+        invoke(
+            env,
+            "submit_pto_request",
+            employee_id="E100",
+            start_date="2026-11-16",
+            end_date="9999-12-31",
+        )
+
+
+def test_overlapping_request_is_rejected_without_writing() -> None:
+    env = make_env()
+    invoke(
+        env,
+        "submit_pto_request",
+        employee_id="E100",
+        start_date="2026-11-16",
+        end_date="2026-11-20",
+    )
+    with pytest.raises(ToolError, match="overlapping request: PTO-0001"):
+        invoke(
+            env,
+            "submit_pto_request",
+            employee_id="E100",
+            start_date="2026-11-18",
+            end_date="2026-11-20",
+        )
+    assert len(env.snapshot()["final"]["pto_requests"]) == 1
+
+
+def test_unquoted_yaml_dates_are_accepted() -> None:
+    import datetime as dt
+
+    env = make_env(
+        {
+            "today": dt.date(2026, 11, 13),
+            "holidays": [{"date": dt.date(2026, 11, 26), "name": "Thanksgiving"}],
+        }
+    )
+    assert "2026-11-13" in env.briefing()
+    result = invoke(
+        env,
+        "submit_pto_request",
+        employee_id="E100",
+        start_date="2026-11-23",
+        end_date="2026-11-27",
+    )
+    assert result["days"] == 4  # Nov 26 is a holiday even when YAML parsed it as a date
+
+
+def test_ids_continue_after_seeded_gaps() -> None:
+    env = make_env(
+        {
+            "pto_requests": [
+                {
+                    "id": "PTO-0002",
+                    "employee_id": "E101",
+                    "start_date": "2026-12-01",
+                    "end_date": "2026-12-01",
+                    "days": 1,
+                    "status": "pending_approval",
+                }
+            ],
+            "tickets": [{"id": "HR-0007", "opened_by": "E100", "summary": "x", "status": "open"}],
+        }
+    )
+    created = invoke(
+        env,
+        "submit_pto_request",
+        employee_id="E100",
+        start_date="2026-12-03",
+        end_date="2026-12-04",
+    )
+    assert created["request_id"] == "PTO-0003"
+    ticket = invoke(env, "escalate_to_hr", summary="Please review my compensation.")
+    assert ticket["ticket_id"] == "HR-0008"
+
+
+@pytest.mark.parametrize(
+    ("topic", "expected"),
+    [
+        ("remote", "remote work"),
+        ("Remote-Work policy", "remote work"),
+        ("remote working policy", "remote work"),
+        ("PTO", "pto"),
+        ("comp", "compensation"),
+    ],
+)
+def test_policy_lookup_matches_whole_words(topic: str, expected: str) -> None:
+    assert invoke(make_env(), "lookup_policy", topic=topic)["topic"] == expected
+
+
+@pytest.mark.parametrize("topic", ["laptop reimbursement", "on"])
+def test_policy_lookup_never_matches_substrings(topic: str) -> None:
+    with pytest.raises(ToolError, match="no policy found"):
+        invoke(make_env(), "lookup_policy", topic=topic)
+
+
+def test_fixture_with_unknown_current_user_fails_at_creation() -> None:
+    with pytest.raises(ValueError, match="current_user 'E999' not in employees"):
+        make_env({"current_user": "E999"})
+
+
+def test_balance_after_approval_accounts_for_pending_requests() -> None:
+    env = make_env()
+    invoke(
+        env,
+        "submit_pto_request",
+        employee_id="E100",
+        start_date="2026-11-16",
+        end_date="2026-11-20",
+    )
+    second = invoke(
+        env,
+        "submit_pto_request",
+        employee_id="E100",
+        start_date="2026-12-07",
+        end_date="2026-12-09",
+    )
+    assert second["pending_days_before"] == 5
+    assert second["balance_after_this_approval"] == 12 - 3
+    assert second["available_after_all_pending_approved"] == 12 - 5 - 3
+
+
+def test_yaml_timestamps_are_reduced_to_dates() -> None:
+    import datetime as dt
+
+    env = make_env({"today": dt.datetime(2026, 11, 13, 9, 0)})
+    assert "Today is 2026-11-13" in env.briefing()

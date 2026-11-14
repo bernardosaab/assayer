@@ -11,12 +11,14 @@ re-running a stage is free and changing one grader recomputes exactly what that 
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass, field
 from typing import Protocol
 
 from assayer.application.events import (
     Graded,
+    Halted,
     Judged,
     NullObserver,
     RunObserver,
@@ -76,13 +78,17 @@ def judge_inputs(case: Case, output: TaskOutput | Transcript) -> tuple[str, str]
     """(evidence, subject): what quotes are verified against, and what is being graded.
 
     Extraction: quotes may come from the source document or the output, so both are evidence.
+    The subject is the *parsed* output, which includes fields derived in code, so the judge and
+    the checks grade the same thing; unparseable output falls back to the raw text.
     Conversation: the rendered transcript is both evidence and subject.
     """
     if isinstance(output, Transcript):
         text = output.render()
         return text, text
     source = case.input_doc if isinstance(case, TaskFixture) else ""
-    subject = output.raw
+    subject = (
+        json.dumps(output.parsed, ensure_ascii=False) if output.parsed is not None else output.raw
+    )
     return f"SOURCE DOCUMENT:\n{source}\n\nEXTRACTED OUTPUT:\n{subject}", subject
 
 
@@ -110,7 +116,6 @@ class ScoreRun:
         for attempt in succeeded:
             report.checks_computed += await self._check(attempt, cases[attempt.case_id])
         if judge and self._harness.judge is not None and self._harness.judge_binding is not None:
-            safe_notify(self._observer, StageStarted("judge", len(succeeded)))
             await self._judge_all(run_id, succeeded, cases, report)
         elif spec.judge is not None and judge:
             report.notes.append("eval defines a judge rubric but no judge model is configured")
@@ -166,17 +171,21 @@ class ScoreRun:
         assert h.judge_binding is not None
         version = h.judge_version
         assert version is not None
+        # Decide the work first, so the progress total counts only what will be judged.
+        todo: list[Attempt] = []
         for attempt in attempts:
-            case = cases[attempt.case_id]
-            criteria = h.spec.criteria_for(case)
-            if not criteria:
+            if not h.spec.criteria_for(cases[attempt.case_id]):
                 continue
             existing = await self._store.get_judgement(attempt.attempt_id, JUDGE_ID, version)
-            if existing is not None and existing.verdict.verdict_final is not None:
-                continue
+            if existing is None or existing.verdict.verdict_final is None:
+                todo.append(attempt)
+        safe_notify(self._observer, StageStarted("judge", len(todo)))
+        for attempt in todo:
+            case = cases[attempt.case_id]
+            criteria = h.spec.criteria_for(case)
             assert attempt.output is not None
             evidence, subject = judge_inputs(case, parse_output(attempt.output))
-            evidence_hash = content_hash(evidence, subject, [c.model_dump() for c in criteria])
+            evidence_hash = content_hash(evidence, subject, criteria)
 
             cached = await self._store.find_judgement_by_evidence(JUDGE_ID, version, evidence_hash)
             if cached is not None:
@@ -184,6 +193,10 @@ class ScoreRun:
                 report.judgements_reused += 1
             elif self._cache_only:
                 report.judgements_skipped += 1
+                safe_notify(
+                    self._observer,
+                    Judged(attempt.case_id, attempt.repeat, None, 0, 0, cached=False, skipped=True),
+                )
                 continue
             else:
                 llm = h.judge_binding.bind(
@@ -199,6 +212,7 @@ class ScoreRun:
                     verdict = await h.judge.judge(criteria, evidence, subject, llm)
                 except BudgetExceeded as exc:
                     report.halted_reason = f"budget exhausted while judging ({exc})"
+                    safe_notify(self._observer, Halted(report.halted_reason))
                     return
                 except HarnessError as exc:
                     verdict = judge_error(exc.kind, str(exc))

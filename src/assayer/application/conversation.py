@@ -36,7 +36,9 @@ async def run_conversation(
     on_turn: Callable[[TurnEvent], None] | None = None,
 ) -> Transcript:
     scenario = fixture.scenario
-    briefing = environment.briefing().strip()
+    # Environments written before briefing() existed (or returning None) still work.
+    brief = getattr(environment, "briefing", None)
+    briefing = ((brief() if callable(brief) else None) or "").strip()
     system = "\n\n".join(p for p in (system_prompt.rstrip(), briefing) if p)
     history: list[Message] = [Message.system(system), Message.user(scenario.opening_message)]
     events: list[ToolEvent] = []

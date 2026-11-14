@@ -15,7 +15,8 @@ from pydantic import Field
 from assayer.domain.base import Model, content_hash
 from assayer.domain.fixtures import CheckSpec, ConversationFixture, Criterion, TaskFixture
 
-JUDGE_PROTOCOL_VERSION = "1"
+# 2: the subject of extraction cases is the parsed output (with derived fields), not raw text.
+JUDGE_PROTOCOL_VERSION = "2"
 
 
 class EvalKind(StrEnum):

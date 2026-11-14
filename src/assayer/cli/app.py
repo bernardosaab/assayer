@@ -24,7 +24,13 @@ from assayer.application.calibration import (
     stratified_sample,
 )
 from assayer.application.compare import compare
-from assayer.application.queries import failures, run_analytics
+from assayer.application.queries import (
+    GradingView,
+    failures,
+    grading_mismatch_note,
+    grading_view,
+    run_analytics,
+)
 from assayer.application.replay import ReplayRun
 from assayer.application.report import DiffReport, build_run_report
 from assayer.application.run_eval import RunEval, RunOptions
@@ -120,21 +126,19 @@ async def _meta(container: Container, run_id: str) -> RunMeta:
     return meta
 
 
-async def _grader_version(c: Container, meta: RunMeta, eval_ref: str | None) -> str:
-    """Which grades to read for a run.
-
-    Prefer the eval's *current* graders (so ``score`` after a check change shows the new
-    grades); fall back to the version the run was graded with when the current graders have not
-    been applied to it (e.g. the base side of a replay diff after the rubric changed).
-    """
+async def _view(
+    c: Container, meta: RunMeta, eval_ref: str | None, *, with_checks: bool = True
+) -> GradingView:
+    """The consistent set of grades, judgements and checks to show for a run."""
     try:
         spec = load_eval(eval_ref or meta.eval_name)
     except AssayerError:
-        return meta.grader_version
-    current = grader_version(spec, spec.judge_version(meta.models.judge))
-    if current != meta.grader_version and not await c.store.list_grades(meta.run_id, current):
-        return meta.grader_version
-    return current
+        spec = None
+    return await grading_view(c.store, meta, spec, with_checks=with_checks)
+
+
+async def _grader_version(c: Container, meta: RunMeta, eval_ref: str | None) -> str:
+    return (await _view(c, meta, eval_ref, with_checks=False)).grader_version
 
 
 # --------------------------------------------------------------------------- run / score
@@ -155,9 +159,6 @@ def run(
     ] = False,
     no_score: Annotated[bool, typer.Option("--no-score", help="Execute only.")] = False,
     no_judge: Annotated[bool, typer.Option("--no-judge", help="Skip the LLM judge.")] = False,
-    force_new_round: Annotated[
-        int, typer.Option("--round", min=1, help="Start a new round under an existing run id.")
-    ] = 1,
     allow_unpriced: Annotated[
         bool, typer.Option("--allow-unpriced", help="Treat models missing from prices as free.")
     ] = False,
@@ -187,7 +188,6 @@ def run(
         max_tries=d.max_tries,
         score=not no_score,
         judge=not no_judge,
-        round=force_new_round,
     )
 
     async def go(c: Container) -> tuple[RunStatus, float | None]:
@@ -370,9 +370,8 @@ def report(
 
     async def go(c: Container) -> Path:
         meta = await _meta(c, run_id)
-        version = await _grader_version(c, meta, eval_ref)
         model = await build_run_report(
-            c.store, meta, version, generated_by=f"assayer {__version__}"
+            c.store, meta, await _view(c, meta, eval_ref), generated_by=f"assayer {__version__}"
         )
         return write(
             JinjaReportRenderer().render_run(model), out or settings.reports_dir / f"{run_id}.html"
@@ -396,12 +395,17 @@ def diff(
 
     async def go(c: Container) -> bool:
         base, cand = await _meta(c, base_run), await _meta(c, candidate_run)
+        base_view = await _view(c, base, eval_ref, with_checks=False)
+        cand_view = await _view(c, cand, eval_ref, with_checks=False)
         comparison = compare(
             base_run,
-            await c.store.list_grades(base_run, await _grader_version(c, base, eval_ref)),
+            await c.store.list_grades(base_run, base_view.grader_version),
             candidate_run,
-            await c.store.list_grades(candidate_run, await _grader_version(c, cand, eval_ref)),
+            await c.store.list_grades(candidate_run, cand_view.grader_version),
         )
+        note = grading_mismatch_note(base, base_view, cand, cand_view)
+        if note:
+            render.console.print(f"[yellow]warning:[/] {note}")
         regressed = comparison.regressed(fail_on_drop)
         render.render_comparison(comparison, regressed, fail_on_drop)
         if html is not None:
@@ -412,6 +416,7 @@ def diff(
                 max_drop=fail_on_drop,
                 regressed=regressed,
                 generated_by=f"assayer {__version__}",
+                note=note,
             )
             render.console.print(f"report: {write(JinjaReportRenderer().render_diff(model), html)}")
         return regressed
@@ -436,9 +441,15 @@ def replay(
 
     async def go(c: Container) -> None:
         assert c.harness is not None
-        result = await ReplayRun(c.store, c.harness, clock=c.clock)(
-            run_id, into, rejudge=rejudge, budget=Money.from_usd(Decimal(budget_usd))
-        )
+        if render.console.is_terminal:
+            with LiveObserver(render.console) as observer:
+                result = await ReplayRun(c.store, c.harness, clock=c.clock, observer=observer)(
+                    run_id, into, rejudge=rejudge, budget=Money.from_usd(Decimal(budget_usd))
+                )
+        else:
+            result = await ReplayRun(c.store, c.harness, clock=c.clock)(
+                run_id, into, rejudge=rejudge, budget=Money.from_usd(Decimal(budget_usd))
+            )
         s = result.scoring
         render.console.print(
             f"replayed {result.copied} attempts into {into}: {s.checks_computed} checks, "

@@ -1,6 +1,6 @@
 [project]
 name = "assayer"
-version = "0.2.0"
+version = "0.2.1"
 description = "Durable, budget-guarded evals for LLM tasks and conversational agents."
 readme = "README.md"
 license = "MIT"

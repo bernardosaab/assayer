@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+import uuid
 from types import TracebackType
 from typing import Any, Self
 
@@ -98,8 +99,10 @@ def _parse_tool_calls(raw_calls: Any) -> tuple[ToolCall, ...]:
     calls: list[ToolCall] = []
     for index, raw in enumerate(raw_calls):
         function = raw["function"]
-        # Some servers omit ids; the conversation still needs one to pair the tool result.
-        call_id = raw.get("id") or f"call_{index}"
+        # Some servers omit ids; the conversation still needs one to pair the tool result, and
+        # it must be unique across the whole conversation (a per-message "call_0" repeats every
+        # turn, so a later result could be paired with an earlier call).
+        call_id = raw.get("id") or f"call_{uuid.uuid4().hex[:12]}_{index}"
         calls.append(
             ToolCall(
                 id=call_id,

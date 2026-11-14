@@ -99,6 +99,16 @@ class LiveObserver:
         elif isinstance(event, AttemptFinished):
             self._running.discard(f"{event.case_id}#{event.repeat}")
             self._describe_running()
+            if event.released:
+                # Not an error and not done: it goes back to pending and runs on resume.
+                self._print(
+                    Text.assemble(
+                        ("  not run ", "dim"),
+                        f"{event.case_id}#{event.repeat}",
+                        ("  (budget)", "dim"),
+                    )
+                )
+                return
             if "execute" in self._tasks:
                 self._progress.advance(self._tasks["execute"])
             took = f"{event.duration_ms / 1000:.1f}s" if event.duration_ms is not None else ""
@@ -135,6 +145,8 @@ class LiveObserver:
             if "judge" in self._tasks:
                 self._progress.advance(self._tasks["judge"])
             notes = []
+            if event.skipped:
+                notes.append("skipped: not cached, use --rejudge")
             if event.cached:
                 notes.append("cached")
             if event.reasks:
@@ -142,10 +154,11 @@ class LiveObserver:
             if event.dropped:
                 notes.append(f"{event.dropped} unverified quote dropped")
             if notes:
+                label = "skipped" if event.skipped else event.verdict or "error"
                 self._print(
                     Text.assemble(
                         ("  judge ", "dim"),
-                        f"{event.case_id}#{event.repeat} {event.verdict or 'error'} ",
+                        f"{event.case_id}#{event.repeat} {label} ",
                         (f"({', '.join(notes)})", "dim"),
                     )
                 )

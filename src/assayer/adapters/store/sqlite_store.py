@@ -143,8 +143,9 @@ class SqliteStore:
                 if row["config_hash"] != meta.config_hash:
                     raise ConfigError(
                         f"run {meta.run_id!r} exists with a different configuration "
-                        f"({row['config_hash']} != {meta.config_hash}); use a new run id "
-                        "or --force-new-round"
+                        f"({row['config_hash']} != {meta.config_hash}): the prompt, models, "
+                        "fixtures or repeats changed. Results are never mixed; use a new run id, "
+                        "and compare the two runs with `assayer diff`"
                     )
                 return RunMeta.model_validate_json(row["meta_json"])
             db.execute(

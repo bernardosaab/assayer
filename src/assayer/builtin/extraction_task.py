@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, ValidationError
 
 from assayer.application.registry import TASK_RUNNERS
 from assayer.domain.base import Model
@@ -94,5 +94,18 @@ def _extraction(
 ) -> ExtractionTask:
     if unknown:
         raise ConfigError(f"extraction runner: unknown args {sorted(unknown)}")
-    rules = {k: YearsSince.model_validate(v) for k, v in (derive or {}).items()}
+    if derive is not None and not isinstance(derive, dict):
+        raise ConfigError("extraction runner: derive must be a mapping of field -> rule")
+    try:
+        rules = {k: YearsSince.model_validate(v) for k, v in (derive or {}).items()}
+    except ValidationError as exc:
+        raise ConfigError(f"extraction runner: invalid derive rule:\n{exc}") from exc
+    properties = (output_schema or {}).get("properties")
+    if isinstance(properties, dict):
+        missing = sorted(r.years_since for r in rules.values() if r.years_since not in properties)
+        if missing:
+            raise ConfigError(
+                f"extraction runner: derive reads {missing}, "
+                "which the output schema does not ask for"
+            )
     return ExtractionTask(system_prompt=system_prompt, output_schema=output_schema, derive=rules)

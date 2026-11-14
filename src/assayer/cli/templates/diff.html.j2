@@ -4,6 +4,7 @@
 {% block body %}
 <h1>{{ r.base.eval_name }}: paired comparison
   <span class="badge {{ 'fail' if r.regressed else 'pass' }}">{{ "regression" if r.regressed else "within gate" }}</span></h1>
+{% if r.note %}<p class="card bad">Warning: {{ r.note }}</p>{% endif %}
 <p class="sub"><code>{{ c.base_run }}</code> (base) vs <code>{{ c.candidate_run }}</code> (candidate) · gate: fail if the paired pass rate drops by more than {{ r.max_drop | pct }}</p>
 
 <div class="grid">

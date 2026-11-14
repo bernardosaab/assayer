@@ -136,7 +136,7 @@
     <ol class="timeline">
       {% for item in v.timeline %}
       <li class="tl-{{ item.actor }}{% if item.error %} tl-error{% endif %}">
-        <span class="tl-who">{{ "tool" if item.actor == "tool" else item.actor }}</span>
+        <span class="tl-who">{{ item.actor }}</span>
         {% if item.actor == "tool" %}<code>{{ item.text }}</code>
           {% if item.error %}<div class="tl-res bad">✗ {{ item.error }}</div>{% elif item.result %}<div class="tl-res muted"><code>{{ item.result }}</code></div>{% endif %}
         {% else %}<div class="tl-text">{{ item.text }}</div>{% endif %}
@@ -146,7 +146,10 @@
     <p><strong>System of record</strong> <span class="muted">(writes that actually committed)</span></p>
     {% if v.writes %}<ul class="reasons">{% for w in v.writes %}<li><code>{{ w }}</code></li>{% endfor %}</ul>
     {% else %}<p class="muted">No writes.</p>{% endif %}
-    {% elif v.output_text %}<pre>{{ v.output_text }}</pre>{% endif %}
+    {% elif v.output_text %}
+    <p class="muted">Model output</p><pre>{{ v.output_text }}</pre>
+    {% if v.graded_text %}<p class="muted">Graded as (parsed, with fields derived in code)</p><pre>{{ v.graded_text }}</pre>{% endif %}
+    {% endif %}
   </div>
 </details>
 {% endfor %}
