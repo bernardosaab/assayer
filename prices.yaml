@@ -1,0 +1,11 @@
+# USD per million tokens. Ordered: the first matching glob wins. Unknown models are refused
+# (fail closed) so a budget can never be bypassed by a typo; --allow-unpriced overrides.
+#
+# The fake models carry made-up non-zero prices so offline runs exercise the cost guard and the
+# report has a cost breakdown to show. Local models are free. Check hosted prices before use.
+- {pattern: "fake/agent", input_per_mtok: 0.15, output_per_mtok: 0.60}
+- {pattern: "fake/simulator", input_per_mtok: 0.15, output_per_mtok: 0.60}
+- {pattern: "fake/judge", input_per_mtok: 1.00, output_per_mtok: 4.00}
+- {pattern: "ollama/*", input_per_mtok: 0, output_per_mtok: 0}
+- {pattern: "groq/llama-3.1-8b-instant", input_per_mtok: 0.05, output_per_mtok: 0.08}
+- {pattern: "groq/*", input_per_mtok: 0.60, output_per_mtok: 0.80}

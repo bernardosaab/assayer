@@ -1,0 +1,27 @@
+# A second extraction eval with ZERO Python: the same built-in runner and checks, new YAML.
+# This is the "cheap to extend" claim made concrete.
+name: posting_extraction
+kind: task
+description: Extract hiring requirements from a job posting.
+
+task:
+  runner: extraction
+  prompt: prompts/system.md
+  output_schema:
+    type: object
+    required: [title, company, remote, min_years, must_have]
+    properties:
+      title: {type: string}
+      company: {type: string}
+      remote: {type: boolean}
+      min_years: {type: integer}
+      must_have: {type: array, items: {type: string}}
+
+checks:
+  - use: field_match
+    args: {fields: [title, company, remote, min_years]}
+  - use: set_f1
+    args: {field: must_have, threshold: 0.75}
+  - use: trap_absent
+  - use: grounded
+    args: {fields: [title, company]}

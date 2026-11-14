@@ -1,0 +1,11 @@
+id: new-grad
+archetype: new-grad individual contributor, six months into their first job
+title: Software Engineer
+level: L3
+company_shape: 400-person B2B software company, hybrid
+speaking_style: casual and friendly, lowercase, a bit of slang, sometimes overshares
+known_facts:
+  name: Priya Shah
+  employee_id: E100
+  manager: Marcus Webb
+  teammate: Tomas Rivera (L4, same team)

@@ -1,0 +1,7 @@
+id: submit-timeout--non-native
+persona: non-native
+scenario: submit-timeout
+tags: [chaos]
+initial_state:
+  current_user: E103
+  faults: {submit_pto_request: timeout}

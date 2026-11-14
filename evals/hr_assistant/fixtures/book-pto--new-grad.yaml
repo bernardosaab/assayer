@@ -1,0 +1,5 @@
+id: book-pto--new-grad
+persona: new-grad
+scenario: book-pto
+tags: [ordinary]
+initial_state: {current_user: E100}

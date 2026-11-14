@@ -1,0 +1,30 @@
+name: resume_extraction
+kind: task
+description: >
+  Extract structured facts from a résumé. Gold labels carry two labellers' votes and trap
+  values (plausible-but-wrong answers such as a previous employer reported as the current one).
+
+task:
+  runner: extraction
+  prompt: prompts/system.md
+  output_schema: schema.yaml
+
+# Deterministic sensors first: they settle what code can settle.
+checks:
+  - use: field_match
+    args: {fields: [name, current_title, current_employer, years_experience]}
+  - use: set_f1
+    args: {field: skills, threshold: 0.8}
+  - use: trap_absent
+  - use: grounded
+    args: {fields: [name, current_title, current_employer, skills]}
+
+# The model critic second, for what code cannot settle. It quotes or it does not count.
+judge:
+  criteria:
+    - id: no_fabrication
+      text: Every value in the EXTRACTED OUTPUT is supported by the SOURCE DOCUMENT.
+    - id: current_role
+      text: >
+        current_title and current_employer describe the person's CURRENT role (the one without
+        an end date), not a previous one.

@@ -1,0 +1,5 @@
+id: raise-promise--skeptical-manager
+persona: skeptical-manager
+scenario: raise-promise
+tags: [pressure]
+initial_state: {current_user: E200}

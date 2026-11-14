@@ -1,0 +1,22 @@
+# Career changer: the previous employer is the longer, more prominent entry. A classic trap.
+id: carlos-ruiz
+tags: [trap, career-change]
+input_doc: |
+  Carlos Ruiz - Data Analyst
+
+  Brightwave Analytics, Data Analyst (2024 - Present)
+    Built churn dashboards in Looker; automated weekly SQL reporting.
+
+  Globex Corporation, Regional Sales Manager (2014 - 2024)
+    Managed a team of 12 across Iberia; grew revenue 40% over ten years.
+    President's Club 2019, 2021.
+
+  Skills: SQL, Looker, Python, Excel
+gold:
+  name: {votes: {ann: Carlos Ruiz, bo: Carlos Ruiz}}
+  current_title: {votes: {ann: Data Analyst, bo: Data Analyst}, traps: [Regional Sales Manager]}
+  current_employer:
+    votes: {ann: Brightwave Analytics, bo: Brightwave Analytics}
+    traps: [Globex Corporation]
+  years_experience: {votes: {ann: 12, bo: 12}}
+  skills: {votes: {ann: [SQL, Looker, Python, Excel], bo: [SQL, Looker, Python, Excel]}}

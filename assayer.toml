@@ -1,0 +1,61 @@
+# Assayer settings. Paths are relative to this file.
+store_path = ".assayer/results.sqlite"
+prices_path = "prices.yaml"
+reports_dir = "reports"
+
+[defaults]
+concurrency = 4
+repeats = 1
+budget_usd = "1.00"
+max_retries = 3
+max_tries = 3
+circuit_breaker = 5
+strict_judge_family = false
+
+# Built in: profile "fake" (scripted, offline, deterministic). Used by CI.
+
+# Local and free: `ollama pull llama3.2:3b && ollama pull qwen2.5:7b`
+[profiles.ollama.agent]
+provider = "openai_compat"
+base_url = "http://localhost:11434/v1"
+model = "ollama/llama3.2:3b"
+family = "llama"
+max_tokens = 1024
+concurrency = 1
+timeout_s = 300
+
+[profiles.ollama.simulator]
+provider = "openai_compat"
+base_url = "http://localhost:11434/v1"
+model = "ollama/llama3.2:3b"
+family = "llama"
+max_tokens = 512
+concurrency = 1
+timeout_s = 300
+
+# The judge comes from a different model family than the agent (ADR-0012).
+[profiles.ollama.judge]
+provider = "openai_compat"
+base_url = "http://localhost:11434/v1"
+model = "ollama/qwen2.5:7b"
+family = "qwen"
+max_tokens = 1024
+concurrency = 1
+timeout_s = 300
+
+# Hosted free tier (optional): export GROQ_API_KEY=...
+[profiles.groq.agent]
+provider = "openai_compat"
+base_url = "https://api.groq.com/openai/v1"
+api_key_env = "GROQ_API_KEY"
+model = "groq/llama-3.1-8b-instant"
+family = "llama"
+concurrency = 2
+
+[profiles.groq.judge]
+provider = "openai_compat"
+base_url = "https://api.groq.com/openai/v1"
+api_key_env = "GROQ_API_KEY"
+model = "groq/qwen/qwen3-32b"
+family = "qwen"
+concurrency = 2

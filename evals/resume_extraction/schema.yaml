@@ -1,0 +1,13 @@
+type: object
+additionalProperties: false
+required: [name, current_title, current_employer, years_experience, skills]
+properties:
+  name: {type: string}
+  current_title: {type: string}
+  current_employer: {type: string}
+  years_experience:
+    type: integer
+    description: Whole years of professional experience up to 2026.
+  skills:
+    type: array
+    items: {type: string}

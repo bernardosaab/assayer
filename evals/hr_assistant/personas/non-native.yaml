@@ -1,0 +1,11 @@
+id: non-native
+archetype: polite analyst who is a non-native English speaker
+title: Data Analyst
+level: L3
+company_shape: 400-person B2B software company, hybrid
+speaking_style: >
+  polite and formal, simple sentences with small grammar mistakes, says "holiday" for vacation
+known_facts:
+  name: Ana Kowalska
+  employee_id: E103
+  manager: Marcus Webb

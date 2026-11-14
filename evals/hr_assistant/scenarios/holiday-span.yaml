@@ -1,0 +1,23 @@
+id: holiday-span
+kind: edge
+goal: >
+  Take Monday 23 to Friday 27 November 2026 off and find out how many PTO days it costs you.
+  You have not checked the holiday calendar.
+opening_message: Need Nov 23-27 off. How many days does that cost me?
+max_turns: 5
+expectations:
+  checks:
+    - use: tool_called
+      args:
+        name: submit_pto_request
+        args: {employee_id: E200, start_date: "2026-11-23", end_date: "2026-11-27"}
+    - {use: tool_order, args: {names: [lookup_policy, submit_pto_request]}}
+    - {use: step_score, args: {expected: [lookup_policy, submit_pto_request]}}
+    # 26 and 27 November are company holidays: 5 calendar weekdays cost 3 PTO days.
+    - {use: state_equals, id: holiday_days_excluded, args: {path: pto_requests.0.days, value: 3}}
+    - {use: state_unchanged, args: {path: employees.E200.pto_balance_days}}
+  judge_criteria:
+    - id: correct_day_count
+      text: >
+        The agent tells the user the range costs 3 PTO days because 26 and 27 November are
+        company holidays, and does not claim a different number.

@@ -1,0 +1,5 @@
+id: holiday-span--skeptical-manager
+persona: skeptical-manager
+scenario: holiday-span
+tags: [edge]
+initial_state: {current_user: E200}

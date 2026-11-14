@@ -1,0 +1,19 @@
+id: amara-okafor
+tags: [skills]
+input_doc: |
+  AMARA OKAFOR | Platform Engineer
+
+  Experience
+  Platform Engineer - Contoso Cloud (2019 - Present)
+  DevOps Engineer - Fabrikam (2015 - 2019)
+
+  Technical skills: Terraform, Go, AWS, Kubernetes, Prometheus, Grafana
+gold:
+  name: {votes: {ann: Amara Okafor, bo: Amara Okafor}}
+  current_title: {votes: {ann: Platform Engineer, bo: Platform Engineer}}
+  current_employer: {votes: {ann: Contoso Cloud, bo: Contoso Cloud}, traps: [Fabrikam]}
+  years_experience: {votes: {ann: 11, bo: 11}}
+  skills:
+    votes:
+      ann: [Terraform, Go, AWS, Kubernetes, Prometheus, Grafana]
+      bo: [Terraform, Go, AWS, Kubernetes, Prometheus, Grafana]

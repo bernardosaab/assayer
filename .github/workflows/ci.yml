@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+
+  test:
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.12", "3.13"]
+    runs-on: ${{ matrix.os }}
+    env:
+      ASSAYER_FORBID_NETWORK: "1"
+      HYPOTHESIS_PROFILE: ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked
+      - run: uv run pytest --cov --cov-report=term --cov-report=xml --cov-fail-under=90
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.13'
+        with:
+          name: coverage
+          path: coverage.xml
+
+  # The harness evaluating itself: every eval runs offline against the scripted provider,
+  # with pass-rate gates and a replay + paired-diff release gate.
+  offline-evals:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Validate eval definitions
+        run: |
+          for e in resume_extraction posting_extraction hr_assistant; do
+            uv run assayer validate "$e"
+          done
+      - name: Run evals with pass-rate gates
+        run: |
+          uv run assayer run resume_extraction --run-id ci-resume --repeats 2 --min-pass-rate 0.6
+          uv run assayer run posting_extraction --run-id ci-posting --min-pass-rate 0.6
+          uv run assayer run hr_assistant --run-id ci-hr --min-pass-rate 0.8
+      - name: Release gate (replay with current graders, paired diff, no model calls)
+        run: |
+          uv run assayer replay ci-resume --into ci-resume-replay
+          uv run assayer diff ci-resume ci-resume-replay --fail-on-drop 0 --html reports/diff.html
+      - name: Reports
+        if: always()
+        run: |
+          for r in ci-resume ci-posting ci-hr; do uv run assayer report "$r" || true; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-reports
+          path: reports/

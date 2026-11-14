@@ -1,0 +1,18 @@
+# Graduation year is not the first job year: years_experience has a trap.
+id: mei-chen
+tags: [trap, arithmetic]
+input_doc: |
+  Mei Chen
+  B.Sc. Computer Science, University of Toronto, 2016
+
+  Work
+  - Machine Learning Engineer @ Northwind Health (2021-Present)
+  - Research Assistant @ Vector Lab (2018-2021)
+
+  Skills: PyTorch, Python, MLflow, Airflow, GCP
+gold:
+  name: Mei Chen
+  current_title: {votes: {ann: Machine Learning Engineer, bo: Machine Learning Engineer}}
+  current_employer: {votes: {ann: Northwind Health, bo: Northwind Health}, traps: [Vector Lab]}
+  years_experience: {votes: {ann: 8, bo: 8}, traps: [10]}
+  skills: {votes: {ann: [PyTorch, Python, MLflow, Airflow, GCP], bo: [PyTorch, Python, MLflow, Airflow, GCP]}}

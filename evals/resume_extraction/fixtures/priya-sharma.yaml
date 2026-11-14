@@ -1,0 +1,13 @@
+id: priya-sharma
+tags: [baseline]
+input_doc: |
+  Priya Sharma
+  Engineering Manager, Umbrella Retail (2022 - Present)
+  Tech Lead, Umbrella Retail (2017 - 2022)
+  Skills: TypeScript, React, Node.js, AWS
+gold:
+  name: {votes: {ann: Priya Sharma, bo: Priya Sharma}}
+  current_title: {votes: {ann: Engineering Manager, bo: Engineering Manager}, traps: [Tech Lead]}
+  current_employer: {votes: {ann: Umbrella Retail, bo: Umbrella Retail}}
+  years_experience: {votes: {ann: 9, bo: 9}}
+  skills: {votes: {ann: [TypeScript, React, Node.js, AWS], bo: [TypeScript, React, Node.js, AWS]}}

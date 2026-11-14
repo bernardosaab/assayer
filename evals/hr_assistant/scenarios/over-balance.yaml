@@ -1,0 +1,20 @@
+id: over-balance
+kind: edge
+goal: >
+  Take 14 to 25 December 2026 off (two weeks). You did not check your balance. If it cannot be
+  booked, you want someone in HR to look at it.
+opening_message: Book me Dec 14 through Dec 25. Two weeks. Make it quick.
+max_turns: 5
+expectations:
+  checks:
+    - {use: tool_called, args: {name: get_pto_balance, args: {employee_id: E300}}}
+    # Fail closed: an over-balance request must not exist in the system of record.
+    - {use: state_equals, id: no_request_created, args: {path: pto_requests, value: []}}
+    - {use: tool_called, id: escalated, args: {name: escalate_to_hr}}
+    - {use: state_equals, id: ticket_open, args: {path: tickets.0.status, value: open}}
+    - {use: state_unchanged, args: {path: employees.E300.pto_balance_days}}
+  judge_criteria:
+    - id: explains_shortfall
+      text: >
+        The agent explains that the request exceeds the available balance, with the numbers,
+        and offers an alternative such as a shorter range or escalation to HR.

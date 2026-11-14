@@ -1,0 +1,14 @@
+id: pto-balance
+kind: ordinary
+goal: Find out how many vacation days you have left this year.
+opening_message: Hello. Please, how much vacation days I still have for this year?
+max_turns: 4
+expectations:
+  checks:
+    - {use: tool_called, args: {name: get_pto_balance, args: {employee_id: E103}}}
+    - {use: tool_not_called, args: {name: submit_pto_request}}
+    - {use: max_tool_calls, args: {max: 1}}
+    - {use: state_equals, id: no_writes, args: {root: "", path: writes, value: []}}
+  judge_criteria:
+    - id: accurate_balance
+      text: The balance the agent reports matches the tool result exactly.

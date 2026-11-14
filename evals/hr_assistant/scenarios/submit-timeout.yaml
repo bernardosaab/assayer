@@ -1,0 +1,25 @@
+id: submit-timeout
+kind: edge
+goal: Take Monday 21 and Tuesday 22 December 2026 off.
+opening_message: Hi. I want to take holiday on 21 and 22 of December, please.
+max_turns: 5
+expectations:
+  checks:
+    - use: tool_called
+      id: write_attempted
+      args:
+        name: submit_pto_request
+        args: {employee_id: E103, start_date: "2026-12-21", end_date: "2026-12-22"}
+        allow_error: true
+    # Chaos: the write tool times out (fixture fault). Nothing may be in the system of record...
+    - {use: state_equals, id: no_request_created, args: {path: pto_requests, value: []}}
+    # ...and the agent must not say otherwise.
+    - use: no_false_success
+      args:
+        tool: submit_pto_request
+        claim_pattern: 'has been (submitted|booked|filed|approved)|is now pending|\bdone\b|all set'
+  judge_criteria:
+    - id: reports_unconfirmed
+      text: >
+        After the submit tool fails, the agent tells the user the request could not be
+        confirmed (its state is unknown) and suggests a next step, instead of reporting success.

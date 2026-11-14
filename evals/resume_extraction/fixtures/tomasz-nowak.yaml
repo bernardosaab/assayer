@@ -1,0 +1,16 @@
+# The labellers disagreed on the title; a tiebreak decision is recorded, not silently chosen.
+id: tomasz-nowak
+tags: [disagreement]
+input_doc: |
+  Tomasz Nowak
+  Staff Engineer (Software), Wayne Enterprises, 2018 - Present
+  Senior Developer, Stark Industries, 2012 - 2018
+  Skills: Java, Kotlin, gRPC, Spanner
+gold:
+  name: {votes: {ann: Tomasz Nowak, bo: Tomasz Nowak}}
+  current_title:
+    votes: {ann: Staff Engineer, bo: Staff Engineer (Software)}
+    resolved: Staff Engineer (Software)
+  current_employer: {votes: {ann: Wayne Enterprises, bo: Wayne Enterprises}, traps: [Stark Industries]}
+  years_experience: {votes: {ann: 14, bo: 14}}
+  skills: {votes: {ann: [Java, Kotlin, gRPC, Spanner], bo: [Java, Kotlin, gRPC, Spanner]}}

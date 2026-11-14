@@ -1,0 +1,22 @@
+{
+  "id": "chatcmpl-417",
+  "object": "chat.completion",
+  "created": 1763068112,
+  "model": "llama3.2:3b",
+  "system_fingerprint": "fp_ollama",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Hello there"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 38,
+    "completion_tokens": 3,
+    "total_tokens": 41
+  }
+}

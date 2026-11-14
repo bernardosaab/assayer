@@ -1,0 +1,8 @@
+id: over-balance--executive
+persona: executive
+scenario: over-balance
+tags: [edge]
+initial_state:
+  current_user: E300
+  employees:
+    E300: {pto_balance_days: 4}

@@ -1,0 +1,138 @@
+{% extends "base.html.j2" %}
+{% set a = r.analytics %}
+{% set m = r.meta %}
+{% block title %}{{ m.eval_name }} · {{ m.run_id }}{% endblock %}
+{% block body %}
+<h1>{{ m.eval_name }} <span class="badge {{ r.status.value }}">{{ r.status.value }}</span></h1>
+<p class="sub">Run <code>{{ m.run_id }}</code>{% if m.replay_of %}, a replay of <code>{{ m.replay_of }}</code>{% endif %} · {{ a.cases }} cases × {{ m.repeats }} repeat{{ "s" if m.repeats != 1 }}</p>
+
+<div class="grid">
+  <div class="card kpi">
+    <div class="label">Pass rate</div>
+    <div class="value">{{ a.rates.pass_rate | pct }}</div>
+    {% set lo, hi = a.rates.interval %}
+    <div class="note">95% CI {{ lo | pct }} to {{ hi | pct }} · n={{ a.rates.graded }}</div>
+    <div class="ci" role="img" aria-label="confidence interval">
+      <div class="band" style="left: {{ (lo * 100) | round(1) }}%; width: {{ ((hi - lo) * 100) | round(1) }}%"></div>
+      {% if a.rates.pass_rate is not none %}<div class="point" style="left: calc({{ (a.rates.pass_rate * 100) | round(1) }}% - 1px)"></div>{% endif %}
+    </div>
+  </div>
+  <div class="card kpi">
+    <div class="label">pass^k (k={{ m.repeats }})</div>
+    <div class="value">{{ a.pass_hat_k | pct }}</div>
+    <div class="note">cases passing every repeat · pass@k {{ a.pass_at_k | pct }}</div>
+  </div>
+  <div class="card kpi">
+    <div class="label">Cost per success</div>
+    <div class="value">{{ a.cost_per_success | usd }}</div>
+    <div class="note">all spend {{ a.total_cost | usd }} ÷ {{ a.rates.passed }} passing</div>
+  </div>
+  <div class="card kpi">
+    <div class="label">Latency p50 / p95</div>
+    <div class="value">{{ a.latency_p50_ms | ms }}</div>
+    <div class="note">p95 {{ a.latency_p95_ms | ms }}</div>
+  </div>
+  <div class="card kpi">
+    <div class="label">Outcomes</div>
+    <div class="value">{{ a.rates.passed }}<span class="muted"> / </span>{{ a.rates.failed }}<span class="muted"> / </span>{{ a.rates.harness_errors }}</div>
+    <div class="note">pass / fail / harness error (not counted)</div>
+  </div>
+</div>
+
+{% if a.failure_causes %}
+<h2>Failure causes</h2>
+<div class="card">
+<table>
+  <tr><th>Cause</th><th class="num">Failing attempts</th><th style="width:40%"></th></tr>
+  {% set top = a.failure_causes[0][1] %}
+  {% for cause, count in a.failure_causes %}
+  <tr><td><code>{{ cause }}</code></td><td class="num">{{ count }}</td>
+      <td><div class="hbar" style="width: {{ (100 * count / top) | round(1) }}%"></div></td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endif %}
+
+{% if a.by_kind | length > 1 %}
+<h2>By scenario kind</h2>
+<div class="card">
+<table>
+  <tr><th>Kind</th><th class="num">Pass rate</th><th class="num">95% CI</th><th class="num">n</th><th class="num">Harness errors</th></tr>
+  {% for kind, s in a.by_kind.items() %}
+  {% set lo, hi = s.interval %}
+  <tr><td>{{ kind }}</td><td class="num">{{ s.pass_rate | pct }}</td><td class="num">{{ lo | pct }} to {{ hi | pct }}</td>
+      <td class="num">{{ s.graded }}</td><td class="num">{{ s.harness_errors }}</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endif %}
+
+<h2>Run record</h2>
+<div class="grid">
+  <div class="card">
+    <dl class="meta">
+      <dt>Created</dt><dd>{{ m.created_at.strftime("%Y-%m-%d %H:%M UTC") }}</dd>
+      <dt>Git</dt><dd><code>{{ (m.git_sha or "unknown")[:12] }}</code>{% if m.git_dirty %} (uncommitted changes){% endif %}</dd>
+      <dt>Prompt version</dt><dd><code>{{ m.prompt_version }}</code></dd>
+      <dt>Judge version</dt><dd><code>{{ m.judge_version or "none" }}</code></dd>
+      <dt>Grader version</dt><dd><code>{{ m.grader_version }}</code></dd>
+      <dt>Round</dt><dd>{{ m.round }}</dd>
+    </dl>
+  </div>
+  <div class="card">
+    <dl class="meta">
+      <dt>Agent</dt><dd><code>{{ m.models.agent }}</code></dd>
+      <dt>Simulator</dt><dd><code>{{ m.models.simulator or "n/a" }}</code></dd>
+      <dt>Judge</dt><dd><code>{{ m.models.judge or "n/a" }}</code></dd>
+      <dt>Budget</dt><dd>{{ m.budget_micros | money }}</dd>
+      <dt>Spend</dt><dd>{{ a.total_cost | usd }}{% for purpose, cost in a.cost_by_purpose.items() %} · {{ purpose }} {{ cost | usd }}{% endfor %}</dd>
+    </dl>
+  </div>
+  {% if a.judge.judgements %}
+  <div class="card">
+    <dl class="meta">
+      <dt>Judgements</dt><dd>{{ a.judge.judgements }} ({{ a.judge.harness_errors }} errors)</dd>
+      <dt>Re-asks</dt><dd>{{ a.judge.reasks }} (contradiction or unparseable)</dd>
+      <dt>Quotes dropped</dt><dd>{{ a.judge.dropped_findings }} of {{ a.judge.findings }} findings{% if a.judge.drop_rate is not none %} ({{ a.judge.drop_rate | pct }}){% endif %}</dd>
+      <dt>Overturned</dt><dd>{{ a.judge.raw_final_disagreements }} "fail" verdicts with no verifiable evidence</dd>
+    </dl>
+  </div>
+  {% endif %}
+</div>
+
+<h2>Attempts</h2>
+{% for v in r.attempts %}
+<details class="attempt"{% if v.grade.outcome.value == "fail" and loop.index <= 3 %} open{% endif %}>
+  <summary>
+    <span class="badge {{ v.grade.outcome.value }}">{{ v.grade.outcome.value }}</span>
+    <strong>{{ v.attempt.case_id }}</strong>
+    <span class="muted">repeat {{ v.attempt.repeat }} · {{ v.kind }}{% if v.turns is not none %} · {{ v.turns }} turns · {{ v.tool_calls }} tool calls · {{ v.termination }}{% endif %} · {{ v.attempt.cost_micros | money }}</span>
+  </summary>
+  <div>
+    {% if v.grade.reasons %}
+    <ul class="reasons">{% for reason in v.grade.reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% if v.attempt.error_msg %}<p class="bad">{{ v.attempt.error_kind.value if v.attempt.error_kind else "error" }}: {{ v.attempt.error_msg }}</p>{% endif %}
+    {% if v.checks %}
+    <table>
+      <tr><th>Check</th><th>Result</th><th>Detail</th></tr>
+      {% for c in v.checks %}
+      <tr><td><code>{{ c.check_id }}</code></td>
+          <td>{% if c.passed %}<span class="ok">pass</span>{% else %}<span class="bad">fail</span>{% endif %}</td>
+          <td class="muted">{{ c.detail.get("reason", "") }}</td></tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+    {% if v.judgement %}
+    <p><strong>Judge</strong> <span class="muted">(raw verdict {{ v.judgement.verdict_raw or "n/a" }}, final {{ v.judgement.verdict_final or "error" }}, {{ v.judgement.reasks }} re-asks)</span></p>
+    {% if v.judgement.reasoning %}<pre>{{ v.judgement.reasoning }}</pre>{% endif %}
+    {% for f in v.judgement.findings %}
+    <p>{% if f.verified %}<span class="ok">✓ verified</span>{% else %}<span class="bad">✗ dropped (quote not in evidence)</span>{% endif %}
+       <code>{{ f.finding.criterion_id }}</code>: “{{ f.finding.quote }}”{% if f.finding.explanation %}<span class="muted">, {{ f.finding.explanation }}</span>{% endif %}</p>
+    {% endfor %}
+    {% endif %}
+    {% if v.output_text %}<pre>{{ v.output_text }}</pre>{% endif %}
+  </div>
+</details>
+{% endfor %}
+{% endblock %}

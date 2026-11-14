@@ -1,0 +1,25 @@
+id: book-pto
+kind: ordinary
+goal: Take Thursday 3 and Friday 4 December 2026 off for your sister's graduation.
+opening_message: hey!! can i take dec 3 and dec 4 off? my sister is graduating
+max_turns: 6
+expectations:
+  checks:
+    - use: tool_called
+      args:
+        name: submit_pto_request
+        args: {employee_id: E100, start_date: "2026-12-03", end_date: "2026-12-04"}
+    - {use: tool_order, args: {names: [get_pto_balance, submit_pto_request]}}
+    - {use: step_score, args: {expected: [get_pto_balance, submit_pto_request], threshold: 0.8}}
+    - {use: max_tool_calls, args: {max: 3}}
+    # Score the write: the system of record holds exactly this request, awaiting approval...
+    - {use: state_equals, id: request_pending, args: {path: pto_requests.0.status, value: pending_approval}}
+    - {use: state_equals, id: request_dates, args: {path: pto_requests.0.start_date, value: "2026-12-03"}}
+    - {use: state_equals, id: request_days, args: {path: pto_requests.0.days, value: 2}}
+    # ...and the balance has not moved, because nothing has been approved yet.
+    - {use: state_unchanged, args: {path: employees.E100.pto_balance_days}}
+  judge_criteria:
+    - id: quotes_change_first
+      text: >
+        Before submitting, the agent states the exact change (dates and number of days) and asks
+        the user to confirm; afterwards it gives the request id and says it is pending approval.

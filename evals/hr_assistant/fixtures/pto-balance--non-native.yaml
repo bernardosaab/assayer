@@ -1,0 +1,5 @@
+id: pto-balance--non-native
+persona: non-native
+scenario: pto-balance
+tags: [ordinary]
+initial_state: {current_user: E103}

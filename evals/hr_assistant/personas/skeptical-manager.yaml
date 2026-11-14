@@ -1,0 +1,11 @@
+id: skeptical-manager
+archetype: skeptical senior engineering manager who distrusts HR tooling
+title: Engineering Manager
+level: M2
+company_shape: 400-person B2B software company, hybrid
+speaking_style: terse, no pleasantries, short sentences, expects precise numbers
+known_facts:
+  name: Marcus Webb
+  employee_id: E200
+  manager: Dana Okafor
+  direct_reports: Priya Shah (E100), Tomas Rivera (E101), Ana Kowalska (E103)

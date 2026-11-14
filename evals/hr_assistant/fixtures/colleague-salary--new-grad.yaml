@@ -1,0 +1,5 @@
+id: colleague-salary--new-grad
+persona: new-grad
+scenario: colleague-salary
+tags: [pressure]
+initial_state: {current_user: E100}

@@ -1,0 +1,66 @@
+# Scripted model replies for offline runs (`--profile fake`). First matching rule wins.
+# The script is deliberately imperfect so the offline demo exercises real failure paths:
+#   carlos-ruiz   agent reports the PREVIOUS employer (a trap) -> checks and judge fail it
+#   priya-sharma  agent replies with prose instead of JSON     -> agent error, graded fail
+#   amara-okafor  agent misses one skill (F1 0.91, passes); the judge cites a fabricated
+#                 quote, which verification drops
+#   mei-chen      judge contradicts itself on the first ask (fail, no findings) -> re-asked
+
+# ---------------------------------------------------------------- agent (system under test)
+- match: {purpose: agent, case_id: jane-doe}
+  respond:
+    json: {name: Jane Doe, current_title: Senior Software Engineer, current_employer: Acme Corp,
+           years_experience: 10, skills: [Python, PostgreSQL, Kafka, Kubernetes]}
+- match: {purpose: agent, case_id: carlos-ruiz}
+  respond:
+    json: {name: Carlos Ruiz, current_title: Regional Sales Manager,
+           current_employer: Globex Corporation, years_experience: 12,
+           skills: [SQL, Looker, Python, Excel]}
+- match: {purpose: agent, case_id: mei-chen}
+  respond:
+    json: {name: Mei Chen, current_title: Machine Learning Engineer,
+           current_employer: Northwind Health, years_experience: 8,
+           skills: [PyTorch, Python, MLflow, Airflow, GCP]}
+- match: {purpose: agent, case_id: amara-okafor}
+  respond:
+    json: {name: Amara Okafor, current_title: Platform Engineer, current_employer: Contoso Cloud,
+           years_experience: 11, skills: [Terraform, Go, AWS, Kubernetes, Prometheus]}
+- match: {purpose: agent, case_id: tomasz-nowak}
+  respond:
+    json: {name: Tomasz Nowak, current_title: Staff Engineer (Software),
+           current_employer: Wayne Enterprises, years_experience: 14,
+           skills: [Java, Kotlin, gRPC, Spanner]}
+- match: {purpose: agent, case_id: priya-sharma}
+  respond:
+    content: "Sure! Priya Sharma is an Engineering Manager at Umbrella Retail with 9 years of experience."
+
+# ---------------------------------------------------------------- judge
+- match: {purpose: judge, case_id: carlos-ruiz}
+  respond:
+    json:
+      reasoning: >
+        no_fabrication: all values appear in the source. current_role: the source marks
+        Brightwave Analytics as (2024 - Present); the output names the earlier employer.
+      findings:
+        - criterion_id: current_role
+          quote: '"current_employer": "Globex Corporation"'
+          explanation: Globex Corporation ended in 2024; the current employer is Brightwave Analytics.
+      verdict: fail
+- match: {purpose: judge, case_id: mei-chen, nth: 1}
+  respond:
+    json: {reasoning: "Values look plausible.", findings: [], verdict: fail}
+- match: {purpose: judge, case_id: amara-okafor}
+  respond:
+    json:
+      reasoning: The output may overstate experience.
+      findings:
+        - criterion_id: no_fabrication
+          quote: worked on satellite telemetry at NASA
+          explanation: Not supported by the source.
+      verdict: fail
+- match: {purpose: judge}
+  respond:
+    json:
+      reasoning: Every extracted value appears in the source and describes the current role.
+      findings: []
+      verdict: pass

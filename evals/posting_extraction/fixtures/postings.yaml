@@ -1,0 +1,36 @@
+- id: ml-platform
+  input_doc: |
+    Senior ML Platform Engineer - Northwind Health (London, hybrid 3 days/week)
+    You have 5+ years building data or ML infrastructure.
+    Must have: Python, Kubernetes, Terraform.
+    Nice to have: Ray, Go.
+  gold:
+    title: Senior ML Platform Engineer
+    company: Northwind Health
+    remote: {votes: {ann: false, bo: false}, traps: [true]}
+    min_years: 5
+    must_have:
+      votes: {ann: [Python, Kubernetes, Terraform], bo: [Python, Kubernetes, Terraform]}
+      traps: [[Python, Kubernetes, Terraform, Ray, Go]]
+- id: backend-remote
+  input_doc: |
+    Backend Engineer (Fully Remote, EU) at Contoso Cloud.
+    Requirements: 3+ years with Go or Rust, PostgreSQL, gRPC.
+  gold:
+    title: Backend Engineer
+    company: Contoso Cloud
+    remote: true
+    min_years: 3
+    must_have: [Go, Rust, PostgreSQL, gRPC]
+- id: data-analyst
+  input_doc: |
+    Fabrikam is hiring a Data Analyst (on-site, Leeds). 2 years minimum; SQL and Excel
+    required; Looker is a plus.
+  gold:
+    title: Data Analyst
+    company: Fabrikam
+    remote: false
+    min_years: 2
+    must_have:
+      votes: {ann: [SQL, Excel], bo: [SQL, Excel]}
+      traps: [[SQL, Excel, Looker]]

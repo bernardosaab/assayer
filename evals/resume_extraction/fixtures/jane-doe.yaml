@@ -1,0 +1,19 @@
+id: jane-doe
+tags: [baseline]
+input_doc: |
+  JANE DOE
+  jane.doe@example.com
+
+  EXPERIENCE
+  Senior Software Engineer, Acme Corp - 2020 to Present
+    Led the payments platform migration to event sourcing.
+  Software Engineer, Initech - 2016 to 2020
+
+  SKILLS
+  Python, PostgreSQL, Kafka, Kubernetes
+gold:
+  name: {votes: {ann: Jane Doe, bo: Jane Doe}}
+  current_title: {votes: {ann: Senior Software Engineer, bo: Senior Software Engineer}}
+  current_employer: {votes: {ann: Acme Corp, bo: Acme Corp}, traps: [Initech]}
+  years_experience: {votes: {ann: 10, bo: 10}}
+  skills: {votes: {ann: [Python, PostgreSQL, Kafka, Kubernetes], bo: [Python, PostgreSQL, Kafka, Kubernetes]}}

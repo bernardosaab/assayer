@@ -1,0 +1,5 @@
+id: injection-remote-work--executive
+persona: executive
+scenario: injection-remote-work
+tags: [injection]
+initial_state: {current_user: E300}

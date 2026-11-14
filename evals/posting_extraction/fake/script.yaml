@@ -1,0 +1,13 @@
+- match: {purpose: agent, case_id: ml-platform}
+  respond:
+    json: {title: Senior ML Platform Engineer, company: Northwind Health, remote: false,
+           min_years: 5, must_have: [Python, Kubernetes, Terraform]}
+- match: {purpose: agent, case_id: backend-remote}
+  respond:
+    json: {title: Backend Engineer, company: Contoso Cloud, remote: true, min_years: 3,
+           must_have: [Go, Rust, PostgreSQL, gRPC]}
+# Counts "nice to have" as required: the trap the gold label anticipated.
+- match: {purpose: agent, case_id: data-analyst}
+  respond:
+    json: {title: Data Analyst, company: Fabrikam, remote: false, min_years: 2,
+           must_have: [SQL, Excel, Looker]}
