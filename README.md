@@ -1,11 +1,11 @@
-# Assayer
+# Assayer: agent eval harness
 
 **An eval harness for LLM tasks and tool-using agents.** Durable runs, a cost guard that refuses
 before it spends, deterministic sensors before a checked LLM judge, and statistics that admit their
 sample size.
 
-[![CI](https://github.com/bernardosaab/assayer/actions/workflows/ci.yml/badge.svg)](https://github.com/bernardosaab/assayer/actions/workflows/ci.yml)
-[![Demo reports](https://img.shields.io/badge/demo-reports-2f5bd3)](https://bernardosaab.github.io/assayer/)
+[![CI](https://github.com/bernardosaab/assayer-agent-eval-harness/actions/workflows/ci.yml/badge.svg)](https://github.com/bernardosaab/assayer-agent-eval-harness/actions/workflows/ci.yml)
+[![Demo reports](https://img.shields.io/badge/demo-reports-2f5bd3)](https://bernardosaab.github.io/assayer-agent-eval-harness/)
 ![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue)
 ![Types](https://img.shields.io/badge/mypy-strict-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -35,7 +35,7 @@ you climb, not a gate you pass once.
 
 ## See it
 
-* **[Demo reports](https://bernardosaab.github.io/assayer/)**, rebuilt by CI on every push: one per
+* **[Demo reports](https://bernardosaab.github.io/assayer-agent-eval-harness/)**, rebuilt by CI on every push: one per
   eval, plus real local-model runs. Conversation attempts are drawn as a timeline (user, agent, each
   tool call with its result or error) next to the writes that actually reached the system of record.
 * **Live in the terminal**: `assayer run` shows progress per stage and each result as it lands;
@@ -61,7 +61,7 @@ success anyway, and a deterministic sensor caught it. The harness scores the wri
 Needs [uv](https://docs.astral.sh/uv/) and git; uv installs Python 3.12+ if you don't have it.
 
 ```bash
-git clone https://github.com/bernardosaab/assayer && cd assayer
+git clone https://github.com/bernardosaab/assayer-agent-eval-harness && cd assayer-agent-eval-harness
 uv sync
 uv run assayer run resume_extraction --run-id demo
 uv run assayer report demo            # writes reports/demo.html
@@ -279,7 +279,7 @@ unknown or duplicate checks and missing sections before anything is spent.
 (Windows: `winget install astral-sh.uv`; macOS: `brew install uv`). uv provides Python 3.12+.
 
 ```bash
-git clone https://github.com/bernardosaab/assayer && cd assayer
+git clone https://github.com/bernardosaab/assayer-agent-eval-harness && cd assayer-agent-eval-harness
 uv sync                                   # creates .venv with all dependencies
 uv run pre-commit install                 # optional: lint on commit
 ```
